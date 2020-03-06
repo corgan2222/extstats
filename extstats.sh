@@ -106,16 +106,14 @@ Clear_Lock(){
 
 Update_File(){
 
-		tmpfile="/tmp/$1"
-		Download_File "$SHARED_REPO/$1" "$tmpfile"
-		if [ ! -f "$SHARED_DIR/$1" ]; then
-			touch "$SHARED_DIR/$1"
-		fi
-		if ! diff -q "$tmpfile" "$SHARED_DIR/$1" >/dev/null 2>&1; then
-			Print_Output "true" "New version of $1 downloaded" "$PASS"
-			Download_File "$SHARED_REPO/$1" "$SHARED_DIR/$1"
-		fi
-		rm -f "$tmpfile"
+	tmpfile="/tmp/$1"
+	Download_File "$SCRIPT_REPO/$1" "$tmpfile"
+	if ! diff -q "$tmpfile" "$SCRIPT_DIR/$1" >/dev/null 2>&1; then
+		Download_File "$SCRIPT_REPO/$1" "$SCRIPT_DIR/$1"
+		Print_Output "true" "New version of $1 downloaded" "$PASS"
+	fi
+	rm -f "$tmpfile"
+
 
 }
 
