@@ -35,19 +35,21 @@ readonly DHCP_HOSTNAMESMAC_SB_HOST="/opt/tmp/dhcp_clients_mac_sb_host.txt"
 
 readConfigData()
 {
-	EXTS_URL=$(grep "EXTS_URL" "$SCRIPT_CONF" | cut -f2 -d"=")
-	EXTS_DATABASE=$(grep "EXTS_DATABASE" "$SCRIPT_CONF" | cut -f2 -d"=")
-	EXTS_USERNAME=$(grep "EXTS_USERNAME" "$SCRIPT_CONF" | cut -f2 -d"=")
-	EXTS_PASSWORD=$(grep "EXTS_PASSWORD" "$SCRIPT_CONF" | cut -f2 -d"=")
-	EXTS_USESSH=$(grep "EXTS_USESSH" "$SCRIPT_CONF" | cut -f2 -d"=")
-	EXTS_NOVERIFIY=$(grep "EXTS_NOVERIFIY" "$SCRIPT_CONF" | cut -f2 -d"=")
-	EXTS_PORT=$(grep "EXTS_PORT" "$SCRIPT_CONF" | cut -f2 -d"=")
-	if [ "$EXTS_USESSH" != "false" ]; then HTTP="https"; else HTTP="http"; fi
-	if [ "$EXTS_NOVERIFIY" == "true" ]; then VERIFIY="-k"; fi #ignore ssl error
+	if [ -f "$SCRIPT_CONF" ]; then
+		EXTS_URL=$(grep "EXTS_URL" "$SCRIPT_CONF" | cut -f2 -d"=")
+		EXTS_DATABASE=$(grep "EXTS_DATABASE" "$SCRIPT_CONF" | cut -f2 -d"=")
+		EXTS_USERNAME=$(grep "EXTS_USERNAME" "$SCRIPT_CONF" | cut -f2 -d"=")
+		EXTS_PASSWORD=$(grep "EXTS_PASSWORD" "$SCRIPT_CONF" | cut -f2 -d"=")
+		EXTS_USESSH=$(grep "EXTS_USESSH" "$SCRIPT_CONF" | cut -f2 -d"=")
+		EXTS_NOVERIFIY=$(grep "EXTS_NOVERIFIY" "$SCRIPT_CONF" | cut -f2 -d"=")
+		EXTS_PORT=$(grep "EXTS_PORT" "$SCRIPT_CONF" | cut -f2 -d"=")
+		if [ "$EXTS_USESSH" != "false" ]; then HTTP="https"; else HTTP="http"; fi
+		if [ "$EXTS_NOVERIFIY" == "true" ]; then VERIFIY="-k"; fi #ignore ssl error
 
-	CURL_OPTIONS="${VERIFIY} -POST" #get is deprecated
-	CURL_USER="-u ${EXTS_USERNAME}:${EXTS_PASSWORD}"
-	TEST_URL="${HTTP}://${EXTS_URL}:${EXTS_PORT}"
+		CURL_OPTIONS="${VERIFIY} -POST" #get is deprecated
+		CURL_USER="-u ${EXTS_USERNAME}:${EXTS_PASSWORD}"
+		TEST_URL="${HTTP}://${EXTS_URL}:${EXTS_PORT}"
+	fi
 }
 
 readConfigData
@@ -110,7 +112,7 @@ Update_File(){
 	Download_File "$SCRIPT_REPO/$1" "$tmpfile"
 	if ! diff -q "$tmpfile" "$SCRIPT_DIR/$1" >/dev/null 2>&1; then
 		Download_File "$SCRIPT_REPO/$1" "$SCRIPT_DIR/$1"
-		chmod 0755 "$SCRIPT_REPO/$1"
+		chmod 0755 "$SCRIPT_DIR/$1"
 		Print_Output "true" "New version of $1 downloaded" "$PASS"
 	fi
 	rm -f "$tmpfile"
