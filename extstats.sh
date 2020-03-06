@@ -110,6 +110,7 @@ Update_File(){
 	Download_File "$SCRIPT_REPO/$1" "$tmpfile"
 	if ! diff -q "$tmpfile" "$SCRIPT_DIR/$1" >/dev/null 2>&1; then
 		Download_File "$SCRIPT_REPO/$1" "$SCRIPT_DIR/$1"
+		chmod 0755 "$SCRIPT_REPO/$1"
 		Print_Output "true" "New version of $1 downloaded" "$PASS"
 	fi
 	rm -f "$tmpfile"
