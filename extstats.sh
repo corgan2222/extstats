@@ -306,9 +306,11 @@ exts_basic(){
     case $1 in
 		enable)
 			sed -i 's/^EXTS_BASIC_ENABLED.*$/EXTS_BASIC_ENABLED=true/' "$SCRIPT_CONF"
+			Auto_Cron create "cron_mod_basic" 2>/dev/null
 		;;
 		disable)
 			sed -i 's/^EXTS_BASIC_ENABLED.*$/EXTS_BASIC_ENABLED=false/' "$SCRIPT_CONF"
+			Auto_Cron delete "cron_mod_basic" 2>/dev/null
 		;;
 		check)
 			EXTS_BASIC_ENABLED=$(grep "EXTS_BASIC_ENABLED" "$SCRIPT_CONF" | cut -f2 -d"=")
@@ -320,9 +322,11 @@ exts_wifi(){
     case $1 in
 		enable)
 			sed -i 's/^EXTS_WIFI_ENABLED.*$/EXTS_WIFI_ENABLED=true/' "$SCRIPT_CONF"
+			Auto_Cron create "cron_mod_wifi_clients" 2>/dev/null
 		;;
 		disable)
 			sed -i 's/^EXTS_WIFI_ENABLED.*$/EXTS_WIFI_ENABLED=false/' "$SCRIPT_CONF"
+			Auto_Cron delete "cron_mod_wifi_clients" 2>/dev/null
 		;;
 		check)
 			EXTS_WIFI_ENABLED=$(grep "EXTS_WIFI_ENABLED" "$SCRIPT_CONF" | cut -f2 -d"=")
@@ -334,9 +338,13 @@ exts_traffic(){
     case $1 in
 		enable)
 			sed -i 's/^EXTS_TRAFFIC_ENABLED.*$/EXTS_TRAFFIC_ENABLED=true/' "$SCRIPT_CONF"
+			Auto_Cron create "cron_mod_client_traffic_setup" 2>/dev/null
+			Auto_Cron create "cron_mod_client_traffic_update" 2>/dev/null
 		;;
 		disable)
 			sed -i 's/^EXTS_TRAFFIC_ENABLED.*$/EXTS_TRAFFIC_ENABLED=false/' "$SCRIPT_CONF"
+			Auto_Cron delete "cron_mod_client_traffic_setup" 2>/dev/null
+			Auto_Cron delete "cron_mod_client_traffic_update" 2>/dev/null
 		;;
 		check)
 			EXTS_TRAFFIC_ENABLED=$(grep "EXTS_TRAFFIC_ENABLED" "$SCRIPT_CONF" | cut -f2 -d"=")
@@ -349,9 +357,11 @@ exts_ntpmerlin(){
     case $1 in
 		enable)
 			sed -i 's/^EXTS_NTPMERLIN_ENABLED.*$/EXTS_NTPMERLIN_ENABLED=true/' "$SCRIPT_CONF"
+			Auto_Cron create "cron_mod_constats" 2>/dev/null
 		;;
 		disable)
 			sed -i 's/^EXTS_NTPMERLIN_ENABLED.*$/EXTS_NTPMERLIN_ENABLED=false/' "$SCRIPT_CONF"
+			Auto_Cron delete "cron_mod_constats" 2>/dev/null
 		;;
 		check)
 			EXTS_NTPMERLIN_ENABLED=$(grep "EXTS_NTPMERLIN_ENABLED" "$SCRIPT_CONF" | cut -f2 -d"=")
@@ -364,9 +374,11 @@ exts_traffic_analyzer(){
     case $1 in
 		enable)
 			sed -i 's/^EXTS_TRAFFIC_ANALYZER_ENABLED.*$/EXTS_TRAFFIC_ANALYZER_ENABLED=true/' "$SCRIPT_CONF"
+			Auto_Cron create "cron_mod_trafficAnalyzer" 2>/dev/null
 		;;
 		disable)
 			sed -i 's/^EXTS_TRAFFIC_ANALYZER_ENABLED.*$/EXTS_TRAFFIC_ANALYZER_ENABLED=false/' "$SCRIPT_CONF"
+			Auto_Cron delete "cron_mod_trafficAnalyzer" 2>/dev/null
 		;;
 		check)
 			EXTS_TRAFFIC_ANALYZER_ENABLED=$(grep "EXTS_TRAFFIC_ANALYZER_ENABLED" "$SCRIPT_CONF" | cut -f2 -d"=")
@@ -379,9 +391,11 @@ exts_spdstats(){
     case $1 in
 		enable)
 			sed -i 's/^EXTS_SPDSTATS_ENABLED.*$/EXTS_SPDSTATS_ENABLED=true/' "$SCRIPT_CONF"
+			Auto_Cron create "cron_mod_spdstats" 2>/dev/null
 		;;
 		disable)
 			sed -i 's/^EXTS_SPDSTATS_ENABLED.*$/EXTS_SPDSTATS_ENABLED=false/' "$SCRIPT_CONF"
+			Auto_Cron delete "cron_mod_spdstats" 2>/dev/null
 		;;
 		check)
 			EXTS_SPDSTATS_ENABLED=$(grep "EXTS_SPDSTATS_ENABLED" "$SCRIPT_CONF" | cut -f2 -d"=")
@@ -394,9 +408,11 @@ exts_vpn(){
     case $1 in
 		enable)
 			sed -i 's/^EXTS_VPN_ENABLED.*$/EXTS_VPN_ENABLED=true/' "$SCRIPT_CONF"
+			Auto_Cron create "cron_mod_vpn_client" 2>/dev/null
 		;;
 		disable)
 			sed -i 's/^EXTS_VPN_ENABLED.*$/EXTS_VPN_ENABLED=false/' "$SCRIPT_CONF"
+			Auto_Cron delete "cron_mod_vpn_client" 2>/dev/null
 		;;
 		check)
 			EXTS_VPN_ENABLED=$(grep "EXTS_VPN_ENABLED" "$SCRIPT_CONF" | cut -f2 -d"=")
@@ -1281,22 +1297,22 @@ fi
 }
 
 
-AutomaticMode(){
-	case "$1" in
-		enable)
-			sed -i 's/^AUTOMATED.*$/AUTOMATED=true/' "$SCRIPT_CONF"
-			Auto_Cron create 2>/dev/null
-		;;
-		disable)
-			sed -i 's/^AUTOMATED.*$/AUTOMATED=false/' "$SCRIPT_CONF"
-			Auto_Cron delete 2>/dev/null
-		;;
-		check)
-			AUTOMATED=$(grep "AUTOMATED" "$SCRIPT_CONF" | cut -f2 -d"=")
-			if [ "$AUTOMATED" = "true" ]; then return 0; else return 1; fi
-		;;
-	esac
-}
+# AutomaticMode(){
+# 	case "$1" in
+# 		enable)
+# 			sed -i 's/^AUTOMATED.*$/AUTOMATED=true/' "$SCRIPT_CONF"
+# 			Auto_Cron create 2>/dev/null
+# 		;;
+# 		disable)
+# 			sed -i 's/^AUTOMATED.*$/AUTOMATED=false/' "$SCRIPT_CONF"
+# 			Auto_Cron delete 2>/dev/null
+# 		;;
+# 		check)
+# 			AUTOMATED=$(grep "AUTOMATED" "$SCRIPT_CONF" | cut -f2 -d"=")
+# 			if [ "$AUTOMATED" = "true" ]; then return 0; else return 1; fi
+# 		;;
+# 	esac
+# }
 
 
 Menu_Startup(){
@@ -1343,39 +1359,65 @@ Auto_Startup(){
 }
 
 Auto_Cron(){
-	case $1 in
+
+	MOD_CRON_ACTION=${1}
+	MOD_CRON_JOB=${2}
+
+	case $MOD_CRON_JOB in
+		cron_mod_basic)
+			CRONTIME="*/1 * * * *" #At every minute
+		;;
+		cron_mod_wifi_clients)
+			CRONTIME="*/1 * * * *" #At every minute
+		;;
+		cron_mod_client_traffic_setup)
+			CRONTIME="5 */1 * * *" #At minute 5 past every hour
+		;;
+		cron_mod_client_traffic_update)
+			CRONTIME="*/1 * * * *" #At every 5 minutes
+		;;
+		cron_mod_trafficAnalyzer)
+			CRONTIME="*/5 * * * *" #At minute 5 past every hour
+		;;
+		cron_mod_constats)
+			CRONTIME="10 */1 * * *" #At minute 10 past every hour
+		;;
+		cron_mod_spdstats)
+			CRONTIME="10 */1 * * *" #At minute 10 past every hour
+		;;
+		cron_mod_vpn_client)
+			CRONTIME="* * * * *" #At every minute
+		;;
+	esac
+
+	case $MOD_CRON_ACTION in
 		create)
-		STARTUPLINECOUNT=$(cru l | grep -c "$SCRIPT_NAME")
+		STARTUPLINECOUNT=$(cru l | grep -c "$MOD_CRON_JOB")
 
-		if [ "$STARTUPLINECOUNT" -eq 0 ]; then
-				SCHEDULESTART=$(grep "SCHEDULESTART" "$SCRIPT_CONF" | cut -f2 -d"=")
-				SCHEDULEEND=$(grep "SCHEDULEEND" "$SCRIPT_CONF" | cut -f2 -d"=")
-				MINUTESTART=$(grep "MINUTE" "$SCRIPT_CONF" | cut -f2 -d"=")
-				if [ "$MINUTESTART" = "*" ]; then
-					MINUTESTART=12
-				fi
-				MINUTEEND=$((MINUTESTART + 30))
-				[ "$MINUTEEND" -gt 60 ] && MINUTEEND=$((MINUTEEND - 60))
-
-				if [ "$SCHEDULESTART" = "*" ] || [ "$SCHEDULEEND" = "*" ]; then
-					cru a "$SCRIPT_NAME" "$MINUTESTART,$MINUTEEND * * * * /jffs/scripts/$SCRIPT_NAME_LOWER generate"
-				else
-					if [ "$SCHEDULESTART" -lt "$SCHEDULEEND" ]; then
-						cru a "$SCRIPT_NAME" "$MINUTESTART,$MINUTEEND ""$SCHEDULESTART-$SCHEDULEEND"" * * * /jffs/scripts/$SCRIPT_NAME_LOWER generate"
-					else
-						cru a "$SCRIPT_NAME" "$MINUTESTART,$MINUTEEND ""$SCHEDULESTART-23,0-$SCHEDULEEND"" * * * /jffs/scripts/$SCRIPT_NAME_LOWER generate"
-					fi
-				fi
-			fi
+		if [ "$STARTUPLINECOUNT" -eq 0 ]; 
+		then
+			cru a "$MOD_CRON_JOB" "$CRONTIME /jffs/scripts/$SCRIPT_NAME $MOD_CRON_JOB"
+		fi
 		;;
 		delete)
-			STARTUPLINECOUNT=$(cru l | grep -c "$SCRIPT_NAME")
+			STARTUPLINECOUNT=$(cru l | grep -c "$MOD_CRON_JOB")
 
 			if [ "$STARTUPLINECOUNT" -gt 0 ]; then
-				cru d "$SCRIPT_NAME"
+				cru d "$MOD_CRON_JOB"
 			fi
 		;;
 	esac
+
+#defaults:
+#1min
+# 1 * * * * /mnt/routerUSB/scripts/scripts/asuswrt/metrics2influx/router_client_traffic.sh setup  #TtInit#
+# 15 * * * * /mnt/routerUSB/scripts/scripts/asuswrt/metrics2influx/router_TrafficAnalyzer_influx.sh update  #Traffic#
+# * * * * * /mnt/routerUSB/scripts/scripts/asuswrt/metrics2influx/routerstats.sh  #routerstats#
+# 30 * * * * /mnt/routerUSB/scripts/scripts/asuswrt/metrics2influx/router_spdstats_influx.sh update  #spdstats#
+# 45 * * * * /mnt/routerUSB/scripts/scripts/asuswrt/metrics2influx/router_constats_influx.sh update  #connstats#
+
+
+
 }
 
 
@@ -1484,16 +1526,6 @@ case "$1" in
 		Menu_Startup
 		exit 0
 	;;
-	generate)
-		if [ -z "$2" ] && [ -z "$3" ]; then
-			Check_Lock
-			Menu_GenerateStats "schedule"
-		elif [ "$2" = "start" ] && [ "$3" = "$SCRIPT_NAME_LOWER" ]; then
-			Check_Lock
-			Menu_GenerateStats "webui"
-		fi
-		exit 0
-	;;
 	automatic)
 		Check_Lock
 		Menu_ToggleAutomated
@@ -1549,15 +1581,4 @@ esac
 # cfg_obmodel=Lyra
 # nvram get cfg_device_list | sed 's/<//;s/>undefined//;s/>/ /g;s/</ /g'
 
-#basic
-# * * * * * /mnt/routerUSB/scripts/scripts/asuswrt/metrics2influx/routerstats.sh  #routerstats#
 
-#client traffic
-#1 * * * * /mnt/routerUSB/scripts/scripts/asuswrt/metrics2influx/router_client_traffic.sh setup  #TtInit#
-#15 * * * * /mnt/routerUSB/scripts/scripts/asuswrt/metrics2influx/router_TrafficAnalyzer_influx.sh update  #Traffic#
-
-#spdMerlin - Speedtest
-#30 * * * * /mnt/routerUSB/scripts/scripts/asuswrt/metrics2influx/router_spdstats_influx.sh update  #spdstats#
-
-#constats - connmon - Internet Uptime Monitoring
-#45 * * * * /mnt/routerUSB/scripts/scripts/asuswrt/metrics2influx/router_constats_influx.sh update  #connstats#
