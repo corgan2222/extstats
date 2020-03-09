@@ -7,9 +7,9 @@ Export Metrics from Asus RT-AX88U Router into influxDB
 
 * Grafana Template
 * Installer and Update Script
-* Shell "GUI" Database Setup
+* Shell "GUI" Database Setup, works with SSH auth and without password
 * Debug and Test Functions
-* Dependence Test 
+* Dependency Test 
 
 * **Export these Metrics from AsusWRT-Merlin into InfluxDB**
 * Basis Stats like CPU, Memory, Processes, Network, uptime, Filesystem, Swap
