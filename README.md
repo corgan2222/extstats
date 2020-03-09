@@ -10,7 +10,7 @@ Export Metrics from Asus RT-AX88U Router into influxDB
 * Installer and Update Script
 * Shell "GUI" Database Setup
 * Debug and Test Functions
-* Dependence Test 
+* Dependency Test 
 
 * **Export these Metrics from AsusWRT-Merlin into InfluxDB**
 * Basis Stats like CPU, Memory, Processes, Network, uptime, Filesystem, Swap
