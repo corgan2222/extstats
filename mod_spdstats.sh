@@ -1,10 +1,4 @@
 #!/bin/sh
-#./router_spdstats_influx.sh full
-#./router_spdstats_influx.sh update
-#cru a spdstats "30 * * * * /mnt/routerUSB/scripts/scripts/asuswrt/metrics2influx/router_spdstats_influx.sh update "
-
-#cru a spdMerlin2 "30 * * * * /jffs/scripts/spdmerlin generate "
-#1,31 -23,0- * * * /jffs/scripts/spdmerlin generate #spdMerlin
 
 	[ -z "$(nvram get odmpid)" ] && ROUTER_MODEL=$(nvram get productid) || ROUTER_MODEL=$(nvram get odmpid)
 	dir=`dirname $0`
@@ -183,6 +177,4 @@ fi
 unlock
 rm -f $DBFILE_COPY
 
-#68422,"2020-03-05 22:00:32",18.903,3.993,100.0
-#97   ,"2020-03-05 21:12:31",497.04,49.87
 

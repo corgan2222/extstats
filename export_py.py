@@ -48,21 +48,24 @@ def isinteger(value):
 
 def loadCsv(inputfilename, servername, user, password, port, dbname, metric, 
     timecolumn, timeformat, tagcolumns, fieldcolumns, usegzip, 
-    delimiter, batchsize, create, usessl, verify_ssl, datatimezone):
+    delimiter, batchsize, create, usessl, noverify, datatimezone):
 
     #host = servername[0:servername.rfind(':')]
     #port = int(servername[servername.rfind(':')+1:])
 
     if(usessl == True):
-        client =  InfluxDBClient(servername, port, user, password, dbname, True, True)
+        if(noverify == True):
+            client =  InfluxDBClient(servername, port, user, password, dbname, True, False)
+        else:
+            client =  InfluxDBClient(servername, port, user, password, dbname, True, True)
     else:
         client = InfluxDBClient(servername, port, user, password, dbname)
 
     if(create == True):
-        print('Deleting database %s'%dbname)
-        client.drop_database(dbname)
-        print('Creating database %s'%dbname)
-        client.create_database(dbname)
+        #print('Deleting database %s'%dbname)
+        #client.drop_database(dbname)
+        #print('Creating database %s'%dbname)
+        #client.create_database(dbname)
 
         client.switch_user(user, password)
 
@@ -173,12 +176,12 @@ if __name__ == "__main__":
 
     parser.add_argument('-ssl', '--ssl', action='store_true', default=False, help='Using SSL.')
 
-    parser.add_argument('-verify_ssl', '--verify_ssl', action='store_true', default=False, help='verify SSL.')
+    parser.add_argument('-noverify', '--noverify', action='store_true', default=False, help='verify SSL.')
 
     parser.add_argument('-b', '--batchsize', type=int, default=5000, help='Batch size. Default: 5000.')
 
     args = parser.parse_args()
     loadCsv(args.input, args.server, args.user, args.password, args.port, args.dbname, 
         args.metricname, args.timecolumn, args.timeformat, args.tagcolumns, 
-        args.fieldcolumns, args.gzip, args.delimiter, args.batchsize, args.create, args.ssl, args.verify_ssl,
+        args.fieldcolumns, args.gzip, args.delimiter, args.batchsize, args.create, args.ssl, args.noverify,
         args.timezone)

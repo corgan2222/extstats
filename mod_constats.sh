@@ -147,7 +147,7 @@ if [ "$EXTS_USESSH" = "true" ]; then
 fi
 
 if [ "$EXTS_NOVERIFIY" = "true" ]; then
-	SSL_VERIFY="--verify_ssl"
+	SSL_NOVERIFIY="--noverify"
 fi
 
 if [ ! -r "$CSV_TEMP_FILE" ]; then
@@ -178,7 +178,7 @@ if [ -f "$CSV_TEMP_FILE" ]; then
 		--dbname "$EXTS_DATABASE" \
 		$DB_MODE \
 		$SSL_MODE \
-		$SSL_VERIFY \
+		$SSL_NOVERIFIY \
 		--fieldcolumns Timestamp,Ping,Jitter,Packet_Loss \
 		--metricname $INFLUX_DB_METRIC_NAME \
 		--batchsize 6000  \

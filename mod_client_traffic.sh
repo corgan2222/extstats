@@ -6,14 +6,11 @@
 # Based on work from Fredrik Erlandsson (erlis AT linux.nu)
 # Based on traff_graph script by twist - http://wiki.openwrt.org/RrdTrafficWatch
 
+# Edit by Corgan
+
 # 1 https://www.instructables.com/id/How-to-graph-home-router-metrics/
 #
 
- #echo 'cru a routerstats "* * * * * /mnt/routerUSB/scripts/scripts/asuswrt/metrics2influx/routerstats.sh "' >> /jffs/scripts/services-start
- #echo 'cru a clients "* * * * * /mnt/routerUSB/scripts/scripts/asuswrt/metrics2influx/router_client_traffic.sh setup "' >> /jffs/scripts/services-start
- #echo 'cru a "routerstats+30" "* * * * * (sleep 30; /jffs/scripts/routerstats/routerstats.sh)"' >> /jffs/scripts/services-start
-
-# nvram show|grep vpn
 [ -z "$(nvram get odmpid)" ] && ROUTER_MODEL=$(nvram get productid) || ROUTER_MODEL=$(nvram get odmpid)
 dir=`dirname $0`
 readonly SCRIPT_NAME="extStats"

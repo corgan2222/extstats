@@ -21,7 +21,7 @@ readonly SCRIPT_NAME="extstats"
 readonly SCRIPT_NAME_LOWER=$(echo $SCRIPT_NAME | tr 'A-Z' 'a-z' | sed 's/d//')
 readonly SCRIPT_DIR="/jffs/addons/$SCRIPT_NAME_LOWER.d"
 readonly SCRIPT_CONF="$SCRIPT_DIR/config.conf"
-readonly SCRIPT_VERSION="v0.0.1"
+readonly SCRIPT_VERSION="v0.1.1"
 readonly SCRIPT_BRANCH="master"
 readonly SCRIPT_REPO="https://raw.githubusercontent.com/corgan2222/""$SCRIPT_NAME""/""$SCRIPT_BRANCH"
 readonly DHCP_HOSTNAMESMAC="/opt/tmp/dhcp_clients_mac.txt"
@@ -47,7 +47,13 @@ readConfigData()
 		if [ "$EXTS_NOVERIFIY" == "true" ]; then VERIFIY="-k"; fi #ignore ssl error
 
 		CURL_OPTIONS="${VERIFIY} -POST" #get is deprecated
-		CURL_USER="-u ${EXTS_USERNAME}:${EXTS_PASSWORD}"
+		UN_COUNT=$(echo $EXTS_PASSWORD | wc -m)
+		UP_COUNT=$(echo $EXTS_PASSWORD | wc -m)
+
+		if [[  ${UP_COUNT} -gt 1 ]]; then EXTS_PW_STRING=":${EXTS_PASSWORD}"; fi
+		if [[  ${UN_COUNT} -gt 1 ]]; then EXTS_USER_STRING="-u ${EXTS_USERNAME}"; fi
+
+		CURL_USER="${EXTS_USER_STRING}${EXTS_PW_STRING}"
 		TEST_URL="${HTTP}://${EXTS_URL}:${EXTS_PORT}"
 	fi
 }
@@ -803,28 +809,31 @@ test_DB()
     printf "Testing Database Conection on ${TEST_URL} \\n\\n"
     curl -sL -I ${TEST_URL}/ping
 
-    printf "creating database\n"
-    curl ${CURL_OPTIONS}  ${TEST_URL}/query ${CURL_USER} --data-urlencode "q=CREATE DATABASE extstats_test2020"
+    printf "creating database\\n"
+	CURL_CMD="${CURL_OPTIONS}  ${TEST_URL}/query ${CURL_USER} --data-urlencode q=CREATE DATABASE ${EXTS_DATABASE}"
+	echo "curl $CURL_CMD"
+    curl ${CURL_OPTIONS} ${TEST_URL}/query ${CURL_USER} --data-urlencode "q=CREATE DATABASE extstats_testDB"
 
     #printf "\\ncreating retention policy\n"
-    #curl ${CURL_OPTIONS} ${TEST_URL}/query ${CURL_USER} --data-urlencode "q=CREATE RETENTION POLICY myrp ON extstats_test2020 DURATION 365d REPLICATION 1 DEFAULT"
+    #curl ${CURL_OPTIONS} ${TEST_URL}/query ${CURL_USER} --data-urlencode "q=CREATE RETENTION POLICY myrp ON ${EXTS_DATABASE} DURATION 365d REPLICATION 1 DEFAULT"
 
-    printf "\\nshowing DB\n"
+    printf "\\nshowing Databases q=SHOW DATABASES \\n"
     curl ${CURL_OPTIONS} ${TEST_URL}/query ${CURL_USER} --data-urlencode "q=SHOW DATABASES"
 
-    printf "\\nInsert Test Data\n"
+    printf "\\nInsert Test Data in DB ${EXTS_DATABASE}\\n"
     CURDATE=`date +%s`
     data="router.test,host=router 24=1,50=100 ${CURDATE}000000000"
-    curl -is -XPOST "${TEST_URL}/write?db=extstats_test2020&u=${EXTS_USERNAME}&p=${EXTS_PASSWORD}" --data-binary "${data}" 
+    #curl ${CURL_OPTIONS} "${TEST_URL}/write?db=${EXTS_DATABASE} ${CURL_USER}" --data-binary "${data}" 
+	curl -is ${CURL_OPTIONS} -XPOST "${TEST_URL}/write?db=${EXTS_DATABASE}&u=${EXTS_USERNAME}&p=${EXTS_PASSWORD}" --data-binary "${data}"
 
-    printf "\nSHOW MEASUREMENTS\n"
-    curl ${CURL_OPTIONS} ${TEST_URL}/query ${CURL_USER} --data-urlencode "db=extstats_test2020" --data-urlencode "q=SHOW MEASUREMENTS" --data-urlencode "pretty=true"
+    printf "\\nSHOW MEASUREMENTS from DB ${EXTS_DATABASE}\\n"
+    curl ${CURL_OPTIONS} ${TEST_URL}/query ${CURL_USER} --data-urlencode "db=${EXTS_DATABASE}" --data-urlencode "q=SHOW MEASUREMENTS" --data-urlencode "pretty=true"
 
-    printf "\nSHOW SERIES\n"
-    curl ${CURL_OPTIONS} ${TEST_URL}/query ${CURL_USER} --data-urlencode "db=extstats_test2020" --data-urlencode "q=SHOW SERIES" --data-urlencode "pretty=true"
+    printf "\\nSHOW SERIES from DB ${EXTS_DATABASE}\\n"
+    curl ${CURL_OPTIONS} ${TEST_URL}/query ${CURL_USER} --data-urlencode "db=${EXTS_DATABASE}" --data-urlencode "q=SHOW SERIES" --data-urlencode "pretty=true"
 
-    #printf "\nRemove Test Database\n"
-    #curl ${CURL_OPTIONS}  ${TEST_URL}/query ${CURL_USER} --data-urlencode "q=DROP DATABASE extstats_test2020"
+    printf "\nRemove Test Database\n"
+    curl ${CURL_OPTIONS}  ${TEST_URL}/query ${CURL_USER} --data-urlencode "q=DROP DATABASE extstats_testDB"
 
     printf "\\n "
     Clear_Lock
@@ -924,6 +933,7 @@ fi
 	printf "d.    Show DHCP Client list \\n"
 	printf "h.    Htop\\n\\n"
 	printf "\\e[1mOther\\e[0m\\n"
+	printf "x.    Check Requirements\\n"
 	printf "u.    Check for updates\\n"
 	printf "uf.   Update %s with latest version (force update)\\n\\n" "$SCRIPT_NAME"
 	printf "e.    Exit %s\\n\\n" "$SCRIPT_NAME"
@@ -1250,6 +1260,12 @@ fi
 				break
 			;;
 
+			x)
+				printf "\\n"
+				Check_Requirements Check_Lock
+				PressEnter
+				break
+			;;
 			u)
 				printf "\\n"
 				if Check_Lock "menu"; then
@@ -1429,13 +1445,139 @@ Check_Requirements(){
 		nvram commit
 		Print_Output "true" "Custom JFFS Scripts enabled" "$WARN"
 	fi
-	
-	if [ "$CHECKSFAILED" = "false" ]; then
+
+	if [ ! -f "/opt/bin/opkg" ]; then
+		Print_Output "true" "Entware not detected!" "$ERR"
+		CHECKSFAILED="true"
+	fi
+
+	if [ ! -f "/opt/bin/sqlite3" ]; then
+		Print_Output "true" "sqlite3 not detected!" "$CRIT"
+
+		while true; do
+			printf "\\n\\e[1mWould you like to install sqlite3? (y/n)\\e[0m\\n"
+			read -r "confirm"
+			case "$confirm" in
+				y|Y)
+					system_install_opkg sqlite3-cli
+					break
+				;;
+				*)
+					CHECKSFAILED="true"
+					break
+				;;
+			esac
+		done
+	fi
+
+	if [ ! -f "/opt/bin/jq" ]; then
+		Print_Output "true" "jq not detected!" "$CRIT"
+
+		while true; do
+			printf "\\n\\e[1mWould you like to install jq? (y/n)\\e[0m\\n"
+			read -r "confirm"
+			case "$confirm" in
+				y|Y)
+					system_install_opkg jq
+					break
+				;;
+				*)
+					CHECKSFAILED="true"
+					break
+				;;
+			esac
+		done
+	fi
+
+	if [ ! -f "/opt/bin/base64" ]; then
+		Print_Output "true" "coreutils-base64 not detected!" "$CRIT"
+
+		while true; do
+			printf "\\n\\e[1mWould you like to install coreutils-base64? (y/n)\\e[0m\\n"
+			read -r "confirm"
+			case "$confirm" in
+				y|Y)
+					system_install_opkg coreutils-base64
+					break
+				;;
+				*)
+					CHECKSFAILED="true"
+					break
+				;;
+			esac
+		done
+	fi
+
+	if [ ! -f "/opt/bin/python" ]; then
+		Print_Output "true" "python not detected!" "$CRIT"
+
+		while true; do
+			printf "\\n\\e[1mWould you like to install python? (y/n)\\e[0m\\n"
+			read -r "confirm"
+			case "$confirm" in
+				y|Y)
+					system_install_opkg python
+					system_install_opkg python-pip
+					pip install influxdb
+					pip install python-dateutil
+					pip install requests
+					break
+				;;
+				*)
+					CHECKSFAILED="true"
+					break
+				;;
+			esac
+		done
+	fi
+
+	pip_influx=$(pip list --disable-pip-version-check | grep influx | wc -l)
+	if [ $pip_influx -lt 1 ]; then
+		pip install influxdb
+		pip install python-dateutil
+		pip install requests
+	fi
+
+	if [ "$CHECKSFAILED" = "true" ]; then
+		Print_Output "true" "Requirements for $SCRIPT_NAME not met, please see above for the reason(s)" "$CRIT"
+		return 0
+	else
+		Print_Output "true" "Requirements for $SCRIPT_NAME passed" "$PASS"
+		return 1
+	fi
+}
+
+system_install_opkg(){
+	opkg update
+	opkg install $1
+}
+
+system_list_opkg(){
+	# sqlite3-cli #/opt/bin/sqlite3
+	# jq #/opt/bin/jq
+	# bc #/opt/bin/jq
+	# coreutils-base64 #/opt/bin/base64
+
+	# python #/opt/bin/python
+	# python-pip
+	# pip install influxdb
+	# pip install python-dateutil
+	# pip install requests
+echo ""
+
+}
+
+system_check_opkg()
+{
+	if [ ! -f "$1" ]; then
+		Print_Output "true" "$1 detected!" "$ERR"
+		CHECKSFAILED="true"
 		return 0
 	else
 		return 1
 	fi
 }
+
 
 Menu_Install(){
 	Print_Output "true" "Welcome to $SCRIPT_NAME $SCRIPT_VERSION, a script by Corgan"
@@ -1462,6 +1604,7 @@ Menu_Install(){
 	Update_File "mod_trafficAnalyzer.sh"
 	Update_File "mod_vpn_client.sh"
 	Update_File "mod_wifi_clients.sh"
+	Update_File "mod_versions.sh"
 
 	Conf_Exists
 	
@@ -1550,6 +1693,7 @@ case "$1" in
 	;;
 	cron_mod_trafficAnalyzer)
 		nice -n -19 $SCRIPT_DIR/mod_trafficAnalyzer.sh "update" "false"
+		nice -n -19 $SCRIPT_DIR/mod_versions.sh "update" "false"
 		exit 0
 	;;
 	cron_mod_constats)

@@ -30,6 +30,8 @@ Print_Output(){
 }
 
 mod_cpu(){
+    #http://www.linuxhowtos.org/System/procstat.htm
+
     CURDATE=`date +%s`
 
     name="router.cpu"
@@ -42,8 +44,14 @@ mod_cpu(){
     points12=`top -bn1 | head -3 | awk '/CPU/ {print $12}' | sed 's/%//g'`
     points14=`top -bn1 | head -3 | awk '/CPU/ {print $14}' | sed 's/%//g'`
 
+    load1=`top -bn1 | head -3 | awk '/Load average:/ {print $3}' | sed 's/%//g'`
+    load5=`top -bn1 | head -3 | awk '/Load average:/ {print $4}' | sed 's/%//g'`
+    load15=`top -bn1 | head -3 | awk '/Load average:/ {print $5}' | sed 's/%//g'`
+
+    processes=$(ps | wc -l)
+
     columns="host=${ROUTER_MODEL}"
-    points="usr=$points2,sys=$points4,nic=$points6,idle=$points8,io=$points10,irq=$points12,sirq=$points12"
+    points="usr=$points2,sys=$points4,nic=$points6,idle=$points8,io=$points10,irq=$points12,sirq=$points12,load1=$load1,load5=$load5,load15=$load15,processes=$processes"
     mod_cpu_data="$name,$columns $points ${CURDATE}000000000"
 
     Print_Output "$SCRIPT_debug" "$mod_cpu_data" "$WARN"
@@ -55,6 +63,7 @@ mod_mem(){
     columns="host=${ROUTER_MODEL}"
     CURDATE=`date +%s`
 
+    total=$(free -h | grep "Mem:" | awk '{print $2}')
     used_kb=`top -bn1 | head -3 | awk '/Mem/ {print $2}' | sed 's/K//g'`
     free_kb=`top -bn1 | head -3 | awk '/Mem/ {print $4}' | sed 's/K//g'`
     shrd_kb=`top -bn1 | head -3 | awk '/Mem/ {print $6}' | sed 's/K//g'`
@@ -65,7 +74,7 @@ mod_mem(){
     #size: 78844 bytes (52228 left)
     #sysinfo | grep MemTotal | awk '/Mem/ {print $2}' | head -1
 
-    points="used_kb=${used_kb},free_kb=${free_kb},shrd_kb=${shrd_kb},buff_kb=${buff_kb},cached_kb=${cached_kb}"
+    points="total=$total,used_kb=${used_kb},free_kb=${free_kb},shrd_kb=${shrd_kb},buff_kb=${buff_kb},cached_kb=${cached_kb}"
     mod_mem_data="$name,$columns $points ${CURDATE}000000000"
     Print_Output "$SCRIPT_debug" "$mod_mem_data" "$WARN"
     $dir/export.sh "$mod_mem_data" "$SCRIPT_debug"
@@ -178,7 +187,7 @@ mod_filesystem()
 
     rm -f $DF_CSV
     #filesystem info, with filter and remove % from used
-    df | tr -s ' ' ',' | grep -vE '^Filesystem|tmpfs|cdrom|www' | sed 's/%//' > $DF_CSV
+    df | tr -s ' ' ',' | grep -vE '^Filesystem|cdrom|www' | sed 's/%//' > $DF_CSV
 
     while read line
     do
@@ -187,16 +196,47 @@ mod_filesystem()
         Used=$(echo ${line} | cut -d',' -f3) #Used
         Available=$(echo ${line} | cut -d',' -f4) #Available
         Use=$(echo ${line} | cut -d',' -f5) #Use
+        Free=$(echo "scale=0;(100-$Use)" | bc) 
         Mounted=$(echo ${line} | cut -d',' -f6) #Mounted on
 
+
+
         columns="host=${ROUTER_MODEL},Filesystem=$Filesystem,MountedOn=$Mounted"
-        filesystem_data="$INFLUX_DB_METRIC_NAME,$columns blocks=$blocks,Used=$Used,Available=$Available,UsedPercent=$Use ${CURDATE}000000000"
+        filesystem_data="$INFLUX_DB_METRIC_NAME,$columns blocks=$blocks,Used=$Used,Available=$Available,UsedPercent=$Use,FreePercent=$Free ${CURDATE}000000000"
 
         Print_Output "${SCRIPT_debug}_mod_filesystem" "$filesystem_data" "$WARN"
         $dir/export.sh "$filesystem_data" "$SCRIPT_debug"
 
     done < $DF_CSV
 
+}
+
+mod_swap()
+{
+    CURDATE=`date +%s`
+    INFLUX_DB_METRIC_NAME="router.swap"
+    
+
+    if [ "$(wc -l < /proc/swaps)" -ge "2" ]; then 
+        swap_filename=$(cat "/proc/swaps" | grep "file" | awk '{print $1}')
+        swap_total=$(free -h | grep "Swap" | awk '{print $2}')
+        swap_used=$(free -h | grep "Swap" | awk '{print $3}')
+        swap_free=$(free -h | grep "Swap" | awk '{print $4}')
+
+        if [ $swap_total -gt 0 ]; then
+            swap_used_percent=$(echo "scale=2;(($swap_used/$swap_total)*100)" | bc) 
+            swap_free_percent=$(echo "scale=2;(($swap_free/$swap_total)*100)" | bc) 
+            swap_per=",swap_used_percent=$swap_used_percent,swap_free_percent=$swap_free_percent"
+        fi
+
+        columns="host=${ROUTER_MODEL},MountedOn=$swap_filename"
+        filesystem_data="$INFLUX_DB_METRIC_NAME,$columns swap_total=$swap_total,swap_used=$swap_used,swap_free=$swap_free${swap_per} ${CURDATE}000000000"
+
+        Print_Output "${SCRIPT_debug}_mod_swap" "$filesystem_data" "$WARN"
+        $dir/export.sh "$filesystem_data" "$SCRIPT_debug"
+    fi
+
+  
 }
 
 mod_cpu 
@@ -206,41 +246,6 @@ mod_net
 mod_connections
 mod_uptime
 mod_filesystem
+mod_swap
 
 
-#    i=0
-#     while read line
-#     do
-#       if [[ $i -gt 0 ]]; then
-#            echo "\"${CURDATE}\",${line},0" >> $DF_CSV_TMP
-#         else
-#            echo "timestamp,${line}" >> $DF_CSV_TMP
-#        fi
-#        i=$((i+1))
-#     done < $DF_CSV
-
-#     #cat $DF_CSV
-#     cat $DF_CSV_TMP
-
-    # #call the python script to do the work
-    # if [ -f "$DF_CSV_TMP" ]; then
-    #     python $dir/export_py.py \
-    #         --input $DF_CSV_TMP \
-    #         -s "$EXTS_URL" \
-    #         -u "$EXTS_USERNAME" \
-    #         -p "$EXTS_PASSWORD" \
-    #         --port "$EXTS_PORT" \
-    #         --dbname "$EXTS_DATABASE" \
-    #         $DB_MODE \
-    #         $SSL_MODE \
-    #         $SSL_VERIFY \
-    #         --tagcolumns Filesystem \
-    #         --fieldcolumns timestamp \
-    #         --metricname $INFLUX_DB_METRIC_NAME \
-    #         --batchsize 6000  \
-    #         -tc timestamp \
-    #         -tf "%Y-%m-%d %H:%M:%S"  -g \
-    #     #rm $CSV_TEMP_FILE
-    # else
-    #     echo "no $DF_CSV_TMP"
-    # fi
