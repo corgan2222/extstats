@@ -1,10 +1,11 @@
 # extstats
-Export Metrics from Asus Router into influxDB
+Export Metrics from Asus RT-AX88U Router into influxDB
 
 # ALPHA Version! Dont use in production yet!
 
 ## Features
 
+* Grafana Template
 * Installer and Update Script
 * Shell "GUI" Database Setup
 * Debug and Test Functions
