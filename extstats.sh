@@ -1540,10 +1540,10 @@ Check_Requirements(){
 
 	if [ "$CHECKSFAILED" = "true" ]; then
 		Print_Output "true" "Requirements for $SCRIPT_NAME not met, please see above for the reason(s)" "$CRIT"
-		return 0
+		return 1
 	else
 		Print_Output "true" "Requirements for $SCRIPT_NAME passed" "$PASS"
-		return 1
+		return 0
 	fi
 }
 
