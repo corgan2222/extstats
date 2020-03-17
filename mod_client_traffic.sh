@@ -17,7 +17,7 @@ readonly SCRIPT_NAME="extStats"
 readonly SCRIPT_debug=$2
 readonly DHCP_HOSTNAMESMAC="/opt/tmp/dhcp_clients_mac.txt"
 readonly MOD_NAME="mod_client_traffic"
-readonly DATA_TEMP_FILE="/opt/tmp/$MOD_NAME.influx"
+readonly DATA_TEMP_FILE="/tmp/$MOD_NAME.influx"
 #generate new clientlist
 $SCRIPT_DIR/helper_dhcpstaticlist.sh >/dev/null 2>&1
 

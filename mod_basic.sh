@@ -100,7 +100,7 @@ mod_net(){
     old="/tmp/$scriptname.data.old"
     new="/tmp/$scriptname.data.new"
     old_epoch_file="/tmp/$scriptname.epoch.old"
-    DATA_TEMP_FILE="/opt/tmp/mod_net.influx"
+    DATA_TEMP_FILE="/tmp/mod_net.influx"
     old_epoch=`cat $old_epoch_file`
     new_epoch=`date "+%s"`
     echo $new_epoch > $old_epoch_file
@@ -139,7 +139,7 @@ mod_net(){
 
             #$dir/export.sh "$mod_net_data" "$SCRIPT_debug"
             #echo "$mod_net_data"
-            #Print_Output "$SCRIPT_debug" "$mod_net_data" "$WARN"
+            Print_Output "$SCRIPT_debug" "$mod_net_data" "$WARN"
 
         done
         mv $new $old
@@ -235,9 +235,48 @@ mod_swap()
         Print_Output "${SCRIPT_debug}_mod_swap" "$filesystem_data" "$WARN"
         $dir/export.sh "$filesystem_data" "$SCRIPT_debug"
     fi
-
-  
 }
+
+mod_divstats(){
+    uidivstats="/jffs/addons/uiDivStats.d/uidivstats.txt"
+
+     if [ -r "$divstats" ]; then
+        CURDATE=`date +%s`
+
+        TOTAL_D_BL=$(cat $divstats | grep "domains in total are blocked" | awk '{print $1}' | sed "s/,//g" )
+        BLOCKED_BL=$(cat $divstats | grep "blocked by blocking list" | awk '{print $1}' | sed "s/,//g")
+        BLOCKED_BLACKLIST=$(cat $divstats | grep "blocked by blacklist" | awk '{print $1}' | sed "s/,//g" )
+        BLOCKED_WILDCARD=$(cat $divstats | grep "blocked by wildcard blacklist" | awk '{print $1}' | sed "s/,//g" )
+        ADS_TOTAL_BL=$(cat $divstats | grep "ads in total blocked" | awk '{print $1}' | sed "s/,//g" )
+        ADS_THIS_WEEK=$(cat $divstats | grep "ads this week, since last Monday" | awk '{print $1}' | sed "s/,//g" )
+        NEW_ADDS=$(cat $divstats | grep "new ads, since" | awk '{print $1}' | sed "s/,//g" )
+
+        name="router.uidivstats"
+        columns="host=${ROUTER_MODEL}"
+        divstats_data="$name,$columns domain_total_blocked=$TOTAL_D_BL,blocked_by_blocking_list=$BLOCKED_BL,blocked_by_blacklist=$BLOCKED_BLACKLIST,blocked_by_wildcard_blacklist=$BLOCKED_WILDCARD,ads_total_blocked=$ADS_TOTAL_BL,ads_this_week=$ADS_THIS_WEEK,new_ads=$NEW_ADDS ${CURDATE}000000000"
+        Print_Output "${SCRIPT_debug}" "$divstats_data" "$WARN"
+        $dir/export.sh "$divstats_data" "$SCRIPT_debug"    
+    fi    
+}
+
+mod_skynet(){
+    EXT_skynetloc="$(grep -ow "skynetloc=.* # Skynet" /jffs/scripts/firewall-start 2>/dev/null | grep -vE "^#" | awk '{print $1}' | cut -c 11-)"
+    EXT_skynetipset="${EXT_skynetloc}/skynet.ipset"
+
+    if [ -r "$EXT_skynetloc" ]; then
+        CURDATE=`date +%s`
+
+	    EXT_blacklist1count="$(grep -Foc "add Skynet-Black" "$EXT_skynetipset" 2> /dev/null)"
+	    EXT_blacklist2count="$(grep -Foc "add Skynet-Block" "$EXT_skynetipset" 2> /dev/null)"
+
+        name="router.skynet"
+        columns="host=${ROUTER_MODEL}"
+        skynet_data="$name,$columns IPs_blocked=$EXT_blacklist1count,IPs_ranged_blocked=$EXT_blacklist2count ${CURDATE}000000000"
+        Print_Output "${SCRIPT_debug}" "$skynet_data" "$WARN"
+        $dir/export.sh "$skynet_data" "$SCRIPT_debug"
+    fi
+}
+
 
 mod_cpu 
 mod_mem
@@ -247,5 +286,6 @@ mod_connections
 mod_uptime
 mod_filesystem
 mod_swap
-
+mod_uidivstats
+mod_skynet
 
