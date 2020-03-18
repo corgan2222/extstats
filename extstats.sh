@@ -21,7 +21,7 @@ readonly SCRIPT_NAME="extstats"
 readonly SCRIPT_NAME_LOWER=$(echo $SCRIPT_NAME | tr 'A-Z' 'a-z' | sed 's/d//')
 readonly SCRIPT_DIR="/jffs/addons/$SCRIPT_NAME_LOWER.d"
 readonly SCRIPT_CONF="$SCRIPT_DIR/config.conf"
-readonly SCRIPT_VERSION="v0.1.4"
+readonly SCRIPT_VERSION="v0.1.5"
 readonly SCRIPT_BRANCH="master"
 readonly SCRIPT_REPO="https://raw.githubusercontent.com/corgan2222/""$SCRIPT_NAME""/""$SCRIPT_BRANCH"
 readonly DHCP_HOSTNAMESMAC="/opt/tmp/dhcp_clients_mac.txt"
@@ -1670,6 +1670,21 @@ Menu_ForceUpdate(){
 	Clear_Lock
 }
 
+rm_crons(){
+	cru d cron_mod_basic 2>/dev/null
+	cru d cron_mod_wifi_clients 2>/dev/null
+	cru d cron_mod_wifi_clients 2>/dev/null
+	cru d cron_mod_client_traffic 2>/dev/null
+	cru d cron_mod_client_traffic_setup 2>/dev/null
+	cru d cron_mod_client_traffic_update 2>/dev/null
+	cru d cron_mod_trafficAnalyzer 2>/dev/null
+	cru d cron_mod_constats 2>/dev/null
+	cru d cron_mod_spdstats 2>/dev/null
+	cru d cron_mod_vpn_client 2>/dev/null
+	cru d cron_mod_constats 2>/dev/null
+
+}
+
 Menu_Uninstall(){
 	Print_Output "true" "Removing $SCRIPT_NAME..." "$PASS"
 	rm_crons
@@ -1686,21 +1701,6 @@ if [ -z "$1" ]; then
 	MainMenu
 	exit 0
 fi
-
-rm_crons(){
-	cru d cron_mod_basic 2>/dev/null
-	cru d cron_mod_wifi_clients 2>/dev/null
-	cru d cron_mod_wifi_clients 2>/dev/null
-	cru d cron_mod_client_traffic 2>/dev/null
-	cru d cron_mod_client_traffic_setup 2>/dev/null
-	cru d cron_mod_client_traffic_update 2>/dev/null
-	cru d cron_mod_trafficAnalyzer 2>/dev/null
-	cru d cron_mod_constats 2>/dev/null
-	cru d cron_mod_spdstats 2>/dev/null
-	cru d cron_mod_vpn_client 2>/dev/null
-	cru d cron_mod_constats 2>/dev/null
-
-}
 
 
 case "$1" in
