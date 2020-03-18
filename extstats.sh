@@ -21,7 +21,7 @@ readonly SCRIPT_NAME="extstats"
 readonly SCRIPT_NAME_LOWER=$(echo $SCRIPT_NAME | tr 'A-Z' 'a-z' | sed 's/d//')
 readonly SCRIPT_DIR="/jffs/addons/$SCRIPT_NAME_LOWER.d"
 readonly SCRIPT_CONF="$SCRIPT_DIR/config.conf"
-readonly SCRIPT_VERSION="v0.1.5"
+readonly SCRIPT_VERSION="v0.1.6"
 readonly SCRIPT_BRANCH="master"
 readonly SCRIPT_REPO="https://raw.githubusercontent.com/corgan2222/""$SCRIPT_NAME""/""$SCRIPT_BRANCH"
 readonly DHCP_HOSTNAMESMAC="/opt/tmp/dhcp_clients_mac.txt"
@@ -840,6 +840,22 @@ test_DB()
 
 }
 
+db_stats(){
+  	printf "\\nSHOW MEASUREMENTS from DB ${EXTS_DATABASE}\\n\\n"
+
+    MEASUREMENTS_JSON=$(curl -s ${CURL_OPTIONS} ${TEST_URL}/query ${CURL_USER} --data-urlencode "db=${EXTS_DATABASE}" --data-urlencode "q=SHOW MEASUREMENTS" --data-urlencode "pretty=true")
+	MEASUREMENTS_STRINGS="$(echo "$MEASUREMENTS_JSON" | jq --compact-output  '.results[].series[].values[]')"
+
+	for col in $MEASUREMENTS_STRINGS ; do
+		MEASUREMENT=$(echo "$col" | sed 's/"//g' | sed 's/\[//g' | sed 's/\]//g')
+		MEASUREMENT_STRINGS=$(curl -s ${CURL_OPTIONS} ${TEST_URL}/query ${CURL_USER} --data-urlencode "db=${EXTS_DATABASE}" --data-urlencode "q=SELECT count(*) FROM \"${EXTS_DATABASE}\".\"autogen\".\"${MEASUREMENT}\"" --data-urlencode "pretty=true")		
+		MEASUREMENT_COUNT="$(echo "$MEASUREMENT_STRINGS" | jq --compact-output  '.results[].series[].values[0][1]')"
+		echo "$MEASUREMENT: $MEASUREMENT_COUNT entrys"		
+	done
+
+
+}
+
 ScriptHeader(){
 	clear
 	#pingDB
@@ -917,6 +933,7 @@ if pingDB; then
 	printf "8.    %s Toogle VPN stats\\n" "$EXTS_VPN_ENABLED"
 
 	printf "\\n\\e[1mTest\\e[0m\\n"	
+	printf "db.    Show Database entrys\\n"
 	printf "t1.    Test Database conection\\n"
 	printf "t2.    Test basic stats \\n"
 	printf "t3.    Test wifi stats \\n"
@@ -1286,6 +1303,12 @@ fi
 				ScriptHeader
 				printf "\\n\\e[1mThanks for using %s!\\e[0m\\n\\n\\n" "$SCRIPT_NAME"
 				exit 0
+			;;
+			db)
+				ScriptHeader
+				db_stats
+				PressEnter
+				break
 			;;
 			z)
 				while true; do
@@ -1771,6 +1794,10 @@ case "$1" in
 	;;
 	cron_mod_vpn_client)
 		nice -n -19 $SCRIPT_DIR/mod_vpn_client.sh "false"
+		exit 0
+	;;
+	db_stats)
+		db_stats
 		exit 0
 	;;
 	*)
