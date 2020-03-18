@@ -21,7 +21,7 @@ readonly SCRIPT_NAME="extstats"
 readonly SCRIPT_NAME_LOWER=$(echo $SCRIPT_NAME | tr 'A-Z' 'a-z' | sed 's/d//')
 readonly SCRIPT_DIR="/jffs/addons/$SCRIPT_NAME_LOWER.d"
 readonly SCRIPT_CONF="$SCRIPT_DIR/config.conf"
-readonly SCRIPT_VERSION="v0.1.3"
+readonly SCRIPT_VERSION="v0.1.4"
 readonly SCRIPT_BRANCH="master"
 readonly SCRIPT_REPO="https://raw.githubusercontent.com/corgan2222/""$SCRIPT_NAME""/""$SCRIPT_BRANCH"
 readonly DHCP_HOSTNAMESMAC="/opt/tmp/dhcp_clients_mac.txt"
@@ -1687,7 +1687,7 @@ if [ -z "$1" ]; then
 	exit 0
 fi
 
-rn_crons(){
+rm_crons(){
 	cru d cron_mod_basic 2>/dev/null
 	cru d cron_mod_wifi_clients 2>/dev/null
 	cru d cron_mod_wifi_clients 2>/dev/null
@@ -1705,7 +1705,7 @@ rn_crons(){
 
 case "$1" in
 	rm_crons)
-		rn_crons
+		rm_crons
 		cru l
 		exit 0
 	;;
