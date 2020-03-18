@@ -986,6 +986,7 @@ fi
                     exts_wifi disable
                 else
                      exts_wifi enable
+					 Auto_Cron create "helper_dhcpstaticlist" 2>/dev/null
                 fi
 				break
 			;;
@@ -995,6 +996,7 @@ fi
                     exts_traffic disable
                 else
                      exts_traffic enable
+					 Auto_Cron create "helper_dhcpstaticlist" 2>/dev/null
                 fi
 				break
 			;;
@@ -1019,7 +1021,7 @@ fi
 							;;
 						esac
 					done
-
+					Auto_Cron create "helper_dhcpstaticlist" 2>/dev/null
 					exts_traffic_analyzer enable
                 fi
 				break
@@ -1398,6 +1400,8 @@ Menu_Startup(){
 	if AutomaticMode check "cron_mod_constats"; then Auto_Cron create "cron_mod_constats" 2>/dev/null; else Auto_Cron delete "cron_mod_constats" 2>/dev/null; fi
 	if AutomaticMode check "cron_mod_spdstats"; then Auto_Cron create "cron_mod_spdstats" 2>/dev/null; else Auto_Cron delete "cron_mod_spdstats" 2>/dev/null; fi
 	if AutomaticMode check "cron_mod_vpn_client"; then Auto_Cron create "cron_mod_vpn_client" 2>/dev/null; else Auto_Cron delete "cron_mod_vpn_client" 2>/dev/null; fi
+	
+	Auto_Cron create "helper_dhcpstaticlist" 2>/dev/null
 
 	Auto_ServiceEvent create 2>/dev/null
 
@@ -1452,7 +1456,7 @@ Auto_Cron(){
 			CRONTIME="*/1 * * * *" #At every minute
 		;;
 		cron_mod_client_traffic_setup)
-			CRONTIME="5 */1 * * *" #At minute 5 past every hour
+			CRONTIME="*/5 * * * *" #every 5 minutes
 		;;
 		cron_mod_client_traffic_update)
 			CRONTIME="*/1 * * * *" #At every 5 minutes
@@ -1468,6 +1472,9 @@ Auto_Cron(){
 		;;
 		cron_mod_vpn_client)
 			CRONTIME="* * * * *" #At every minute
+		;;
+		helper_dhcpstaticlist)
+			CRONTIME="*/5 * * * *" #every 5 minutes
 		;;
 	esac
 
@@ -1705,6 +1712,7 @@ rm_crons(){
 	cru d cron_mod_spdstats 2>/dev/null
 	cru d cron_mod_vpn_client 2>/dev/null
 	cru d cron_mod_constats 2>/dev/null
+	cru d helper_dhcpstaticlist 2>/dev/null
 
 }
 
@@ -1794,6 +1802,10 @@ case "$1" in
 	;;
 	cron_mod_vpn_client)
 		nice -n -19 $SCRIPT_DIR/mod_vpn_client.sh "false"
+		exit 0
+	;;
+	helper_dhcpstaticlist)
+		nice -n -19 $SCRIPT_DIR/helper_dhcpstaticlist.sh 
 		exit 0
 	;;
 	db_stats)
