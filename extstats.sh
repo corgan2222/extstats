@@ -1671,8 +1671,10 @@ Menu_ForceUpdate(){
 }
 
 Menu_Uninstall(){
-	rn_crons
 	Print_Output "true" "Removing $SCRIPT_NAME..." "$PASS"
+	rm_crons
+	Auto_Startup delete 2>/dev/null
+	Auto_ServiceEvent delete 2>/dev/null
 	Shortcut_EXTS delete
 	rm -f "/jffs/scripts/$SCRIPT_NAME" 2>/dev/null
 	Clear_Lock
