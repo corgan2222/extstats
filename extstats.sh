@@ -1313,31 +1313,73 @@ fi
 }
 
 
-# AutomaticMode(){
-# 	case "$1" in
-# 		enable)
-# 			sed -i 's/^AUTOMATED.*$/AUTOMATED=true/' "$SCRIPT_CONF"
-# 			Auto_Cron create 2>/dev/null
-# 		;;
-# 		disable)
-# 			sed -i 's/^AUTOMATED.*$/AUTOMATED=false/' "$SCRIPT_CONF"
-# 			Auto_Cron delete 2>/dev/null
-# 		;;
-# 		check)
-# 			AUTOMATED=$(grep "AUTOMATED" "$SCRIPT_CONF" | cut -f2 -d"=")
-# 			if [ "$AUTOMATED" = "true" ]; then return 0; else return 1; fi
-# 		;;
-# 	esac
-# }
+AutomaticMode(){
+
+	MOD_CRON_JOB=${2}
+
+	case $MOD_CRON_JOB in
+		cron_mod_basic)
+			config_var="EXTS_BASIC_ENABLED"
+		;;
+		cron_mod_wifi_clients)
+			config_var="EXTS_WIFI_ENABLED"
+		;;
+		cron_mod_client_traffic)
+			config_var="EXTS_TRAFFIC_ENABLED"
+		;;
+		cron_mod_trafficAnalyzer)
+			config_var="EXTS_TRAFFIC_ANALYZER_ENABLED"
+		;;
+		cron_mod_constats)
+			config_var="EXTS_NTPMERLIN_ENABLED"
+		;;
+		cron_mod_spdstats)
+			config_var="EXTS_SPDSTATS_ENABLED"
+		;;
+		cron_mod_vpn_client)
+			config_var="EXTS_VPN_ENABLED"
+		;;
+	esac
+
+
+	case "$1" in
+		enable)
+			#sed -i 's/^AUTOMATED.*$/AUTOMATED=true/' "$SCRIPT_CONF"
+			sed -i 's/^${config_var}.*$/${config_var}=true/' "$SCRIPT_CONF"
+			Auto_Cron create 2>/dev/null
+			#per mod mode
+		;;
+		disable)
+			#sed -i 's/^AUTOMATED.*$/AUTOMATED=false/' "$SCRIPT_CONF"
+			sed -i 's/^${config_var}.*$/${config_var}=false/' "$SCRIPT_CONF"
+			Auto_Cron delete 2>/dev/null
+		;;
+		check)
+			AUTOMATED=$(grep "$config_var" "$SCRIPT_CONF" | cut -f2 -d"=")
+			if [ "$AUTOMATED" = "true" ]; then return 0; else return 1; fi
+		;;
+	esac
+}
 
 
 Menu_Startup(){
-	Auto_Startup create 2>/dev/null
-	if AutomaticMode check; then Auto_Cron create 2>/dev/null; else Auto_Cron delete 2>/dev/null; fi
+
+	Auto_Startup create 2>/dev/null #create /jffs/scripts/extstats startup in services-start
+
+	#set crons on startup based on config
+	if AutomaticMode check "cron_mod_basic"; then Auto_Cron create "cron_mod_basic" 2>/dev/null; else Auto_Cron delete "cron_mod_basic" 2>/dev/null; fi
+	if AutomaticMode check "cron_mod_wifi_clients"; then Auto_Cron create "cron_mod_wifi_clients" 2>/dev/null; else Auto_Cron delete "cron_mod_wifi_clients" 2>/dev/null; fi
+	if AutomaticMode check "cron_mod_client_traffic"; then Auto_Cron create "cron_mod_client_traffic_setup" 2>/dev/null; else Auto_Cron delete "cron_mod_client_traffic_setup" 2>/dev/null; fi
+	if AutomaticMode check "cron_mod_client_traffic"; then Auto_Cron create "cron_mod_client_traffic_update" 2>/dev/null; else Auto_Cron delete "cron_mod_client_traffic_update" 2>/dev/null; fi
+	if AutomaticMode check "cron_mod_trafficAnalyzer"; then Auto_Cron create "cron_mod_trafficAnalyzer" 2>/dev/null; else Auto_Cron delete "cron_mod_trafficAnalyzer" 2>/dev/null; fi
+	if AutomaticMode check "cron_mod_constats"; then Auto_Cron create "cron_mod_constats" 2>/dev/null; else Auto_Cron delete "cron_mod_constats" 2>/dev/null; fi
+	if AutomaticMode check "cron_mod_spdstats"; then Auto_Cron create "cron_mod_spdstats" 2>/dev/null; else Auto_Cron delete "cron_mod_spdstats" 2>/dev/null; fi
+	if AutomaticMode check "cron_mod_vpn_client"; then Auto_Cron create "cron_mod_vpn_client" 2>/dev/null; else Auto_Cron delete "cron_mod_vpn_client" 2>/dev/null; fi
+
 	Auto_ServiceEvent create 2>/dev/null
+
 	Shortcut_EXTS create
 	Create_Dirs
-	Create_Symlinks
 	Clear_Lock
 }
 
@@ -1347,11 +1389,11 @@ Auto_Startup(){
 			if [ -f /jffs/scripts/services-start ]; then
 				STARTUPLINECOUNT=$(grep -c '# '"$SCRIPT_NAME" /jffs/scripts/services-start)
 				STARTUPLINECOUNTEX=$(grep -cx "/jffs/scripts/$SCRIPT_NAME_LOWER startup"' # '"$SCRIPT_NAME" /jffs/scripts/services-start)
-				
+
 				if [ "$STARTUPLINECOUNT" -gt 1 ] || { [ "$STARTUPLINECOUNTEX" -eq 0 ] && [ "$STARTUPLINECOUNT" -gt 0 ]; }; then
 					sed -i -e '/# '"$SCRIPT_NAME"'/d' /jffs/scripts/services-start
 				fi
-				
+
 				if [ "$STARTUPLINECOUNTEX" -eq 0 ]; then
 					echo "/jffs/scripts/$SCRIPT_NAME_LOWER startup"' # '"$SCRIPT_NAME" >> /jffs/scripts/services-start
 				fi
@@ -1365,7 +1407,7 @@ Auto_Startup(){
 		delete)
 			if [ -f /jffs/scripts/services-start ]; then
 				STARTUPLINECOUNT=$(grep -c '# '"$SCRIPT_NAME" /jffs/scripts/services-start)
-				
+
 				if [ "$STARTUPLINECOUNT" -gt 0 ]; then
 					sed -i -e '/# '"$SCRIPT_NAME"'/d' /jffs/scripts/services-start
 				fi
@@ -1608,9 +1650,9 @@ Menu_Install(){
 
 	Conf_Exists
 	
-	#Auto_Startup create 2>/dev/null
+	Auto_Startup create 2>/dev/null
 	#if AutomaticMode check; then Auto_Cron create 2>/dev/null; else Auto_Cron delete 2>/dev/null; fi
-	#Auto_ServiceEvent create 2>/dev/null
+	Auto_ServiceEvent create 2>/dev/null
 
 	Shortcut_EXTS create
 	Clear_Lock
@@ -1629,6 +1671,7 @@ Menu_ForceUpdate(){
 }
 
 Menu_Uninstall(){
+	rn_crons
 	Print_Output "true" "Removing $SCRIPT_NAME..." "$PASS"
 	Shortcut_EXTS delete
 	rm -f "/jffs/scripts/$SCRIPT_NAME" 2>/dev/null
@@ -1642,8 +1685,28 @@ if [ -z "$1" ]; then
 	exit 0
 fi
 
+rn_crons(){
+	cru d cron_mod_basic 2>/dev/null
+	cru d cron_mod_wifi_clients 2>/dev/null
+	cru d cron_mod_wifi_clients 2>/dev/null
+	cru d cron_mod_client_traffic 2>/dev/null
+	cru d cron_mod_client_traffic_setup 2>/dev/null
+	cru d cron_mod_client_traffic_update 2>/dev/null
+	cru d cron_mod_trafficAnalyzer 2>/dev/null
+	cru d cron_mod_constats 2>/dev/null
+	cru d cron_mod_spdstats 2>/dev/null
+	cru d cron_mod_vpn_client 2>/dev/null
+	cru d cron_mod_constats 2>/dev/null
+
+}
+
 
 case "$1" in
+	rm_crons)
+		rn_crons
+		cru l
+		exit 0
+	;;
 	install)
 		Check_Lock
 		Menu_Install
@@ -1665,7 +1728,7 @@ case "$1" in
 		exit 0
 	;;
 	startup)
-		Check_Lock
+		#Check_Lock
 		Menu_Startup
 		exit 0
 	;;
