@@ -152,7 +152,7 @@ mod_net(){
 mod_connections(){
     CURDATE=`date +%s`
     active_dhcp_leases=$(cat /var/lib/misc/dnsmasq.leases| wc -l)
-    mod_connected_clients=$(arp -a | awk '$4!="<incomplete>"' | wc -l)
+    mod_connected_clients=$(arp -a -n | awk '$4!="<incomplete>"' | wc -l)
     wifi_24=`wl -i eth6 assoclist | awk '{print $2}' | wc -l`
     wifi_5=`wl -i eth7 assoclist | awk '{print $2}' | wc -l`
 
@@ -234,11 +234,13 @@ mod_swap()
 
         Print_Output "${SCRIPT_debug}_mod_swap" "$filesystem_data" "$WARN"
         $dir/export.sh "$filesystem_data" "$SCRIPT_debug"
+    else
+        Print_Output "${SCRIPT_debug}" "no swap found" "$WARN"        
     fi
 }
 
 mod_divstats(){
-    uidivstats="/jffs/addons/uiDivStats.d/uidivstats.txt"
+    divstats="/jffs/addons/uiDivStats.d/uidivstats.txt"
 
      if [ -r "$divstats" ]; then
         CURDATE=`date +%s`
@@ -255,8 +257,10 @@ mod_divstats(){
         columns="host=${ROUTER_MODEL}"
         divstats_data="$name,$columns domain_total_blocked=$TOTAL_D_BL,blocked_by_blocking_list=$BLOCKED_BL,blocked_by_blacklist=$BLOCKED_BLACKLIST,blocked_by_wildcard_blacklist=$BLOCKED_WILDCARD,ads_total_blocked=$ADS_TOTAL_BL,ads_this_week=$ADS_THIS_WEEK,new_ads=$NEW_ADDS ${CURDATE}000000000"
         Print_Output "${SCRIPT_debug}" "$divstats_data" "$WARN"
-        $dir/export.sh "$divstats_data" "$SCRIPT_debug"    
-    fi    
+        $dir/export.sh "$divstats_data" "$SCRIPT_debug"
+    else
+        Print_Output "${SCRIPT_debug}" "$uidivstats not found" "$WARN"
+    fi
 }
 
 mod_skynet(){
@@ -274,6 +278,8 @@ mod_skynet(){
         skynet_data="$name,$columns IPs_blocked=$EXT_blacklist1count,IPs_ranged_blocked=$EXT_blacklist2count ${CURDATE}000000000"
         Print_Output "${SCRIPT_debug}" "$skynet_data" "$WARN"
         $dir/export.sh "$skynet_data" "$SCRIPT_debug"
+    else
+        Print_Output "${SCRIPT_debug}" "$EXT_skynetipset not found" "$WARN"
     fi
 }
 
