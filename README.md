@@ -33,8 +33,7 @@ https://github.com/corgan2222/extstats/wiki/mod_basic
 * Support for spdMerlin Stats (Speedtest Data) [spdMerlin | Jack Yaz](https://www.snbforums.com/threads/spdmerlin-automated-speedtests-with-graphs.55904/) https://github.com/corgan2222/extstats/wiki/mod_spdstats-(Speedtest-Monitoring)
 
 # Known Bugs
-1. no autostart atm (u have to reinstall on reboot)
-2. if you running aiMesh, the WiFi Clients are not shown
+1. if you running aiMesh, the WiFi Clients are not shown
 
 # ToDos
 1. autostart service
