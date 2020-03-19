@@ -286,6 +286,6 @@ mod_connections
 mod_uptime
 mod_filesystem
 mod_swap
-mod_uidivstats
+mod_divstats
 mod_skynet
 

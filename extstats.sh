@@ -21,7 +21,7 @@ readonly SCRIPT_NAME="extstats"
 readonly SCRIPT_NAME_LOWER=$(echo $SCRIPT_NAME | tr 'A-Z' 'a-z' | sed 's/d//')
 readonly SCRIPT_DIR="/jffs/addons/$SCRIPT_NAME_LOWER.d"
 readonly SCRIPT_CONF="$SCRIPT_DIR/config.conf"
-readonly SCRIPT_VERSION="v0.1.6"
+readonly SCRIPT_VERSION="v0.1.7"
 readonly SCRIPT_BRANCH="master"
 readonly SCRIPT_REPO="https://raw.githubusercontent.com/corgan2222/""$SCRIPT_NAME""/""$SCRIPT_BRANCH"
 readonly DHCP_HOSTNAMESMAC="/opt/tmp/dhcp_clients_mac.txt"
@@ -809,11 +809,12 @@ test_DB()
     printf "Testing Database Conection on ${TEST_URL} \\n\\n"
     curl -sL -I ${TEST_URL}/ping
 
-    printf "creating database\\n"
-	CURL_CMD="${CURL_OPTIONS}  ${TEST_URL}/query ${CURL_USER} --data-urlencode q=CREATE DATABASE ${EXTS_DATABASE}"
+    #printf "creating database\\n"
+	CURL_CMD="${CURL_OPTIONS}  ${TEST_URL}/query ${CURL_USER} --data-urlencode q=CREATE DATABASE extstats_testDB"
+	#CURL_CMD="${CURL_OPTIONS}  ${TEST_URL}/query ${CURL_USER} --data-urlencode q=CREATE DATABASE ${EXTS_DATABASE}"
 	echo "curl $CURL_CMD"
-    curl ${CURL_OPTIONS} ${TEST_URL}/query ${CURL_USER} --data-urlencode "q=CREATE DATABASE extstats_testDB"
 
+	#curl ${CURL_OPTIONS} ${TEST_URL}/query ${CURL_USER} --data-urlencode "q=CREATE DATABASE extstats_testDB"
     #printf "\\ncreating retention policy\n"
     #curl ${CURL_OPTIONS} ${TEST_URL}/query ${CURL_USER} --data-urlencode "q=CREATE RETENTION POLICY myrp ON ${EXTS_DATABASE} DURATION 365d REPLICATION 1 DEFAULT"
 

@@ -28,7 +28,7 @@ readonly INFLUX_DB_METRIC_NAME="router.trafficAnalyzer"
 
 #Script Settings
 readonly TEMP_FOLDER="/tmp"
-readonly DHCP_HOSTNAMESMAC_CSV="/tmp/dhcp_clients_mac.csv"
+readonly DHCP_HOSTNAMESMAC_CSV="/opt/tmp/dhcp_clients_mac.csv"
 readonly DBFILE_ORG="/jffs/.sys/TrafficAnalyzer/TrafficAnalyzer.db"
 readonly DBFILE_COPY="$TEMP_FOLDER/$MOD_NAME.db"
 readonly CSV_TEMP_FILE="$TEMP_FOLDER/$MOD_NAME.csv"
