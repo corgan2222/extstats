@@ -5,6 +5,13 @@ Export Metrics from Asus RT-AX88U Router into influxDB
 
 # ALPHA Version! Dont use in production yet!
 
+## [Install ](https://github.com/corgan2222/extstats/wiki/Setup)
+`/usr/sbin/curl --retry 3 "https://raw.githubusercontent.com/corgan2222/extstats/master/extstats.sh" -o "/jffs/scripts/extstats" && chmod 0755 /jffs/scripts/extstats && /jffs/scripts/extstats install`
+
+## Requirements
+
+* running influxDB
+
 ## Features
 
 * Installer and Update Script
@@ -46,8 +53,6 @@ https://github.com/corgan2222/extstats/wiki/mod_basic
 # disclamer
 Im not a linux guru and i have done this for my personal use and put a lot of work into this script to make it public availible. For shure are there better, performanter or easyier ways to do some task. So if you have tips how to improve this script, im more than happy if you let me know. stefan [@] knaak.org
 
-## [Install ](https://github.com/corgan2222/extstats/wiki/Setup)
-`/usr/sbin/curl --retry 3 "https://raw.githubusercontent.com/corgan2222/extstats/master/extstats.sh" -o "/jffs/scripts/extstats" && chmod 0755 /jffs/scripts/extstats && /jffs/scripts/extstats install`
 
 [![extstats](https://raw.githubusercontent.com/corgan2222/extstats/master/images_thumbs/extstats.jpg)](https://raw.githubusercontent.com/corgan2222/extstats/master/images/extstats.jpg)
 
