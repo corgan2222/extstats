@@ -8,6 +8,9 @@ Export Metrics from Asus RT-AX88U Router into influxDB
 ## [Install ](https://github.com/corgan2222/extstats/wiki/Setup)
 `/usr/sbin/curl --retry 3 "https://raw.githubusercontent.com/corgan2222/extstats/master/extstats.sh" -o "/jffs/scripts/extstats" && chmod 0755 /jffs/scripts/extstats && /jffs/scripts/extstats install`
 
+## Setup
+check the Wiki https://github.com/corgan2222/extstats/wiki/Setup
+
 ## Requirements
 
 * running influxDB
