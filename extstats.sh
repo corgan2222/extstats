@@ -21,7 +21,7 @@ readonly SCRIPT_NAME="extstats"
 readonly SCRIPT_NAME_LOWER=$(echo $SCRIPT_NAME | tr 'A-Z' 'a-z' | sed 's/d//')
 readonly SCRIPT_DIR="/jffs/addons/$SCRIPT_NAME_LOWER.d"
 readonly SCRIPT_CONF="$SCRIPT_DIR/config.conf"
-readonly SCRIPT_VERSION="v0.1.8"
+readonly SCRIPT_VERSION="v0.1.9"
 readonly SCRIPT_BRANCH="master"
 readonly SCRIPT_REPO="https://raw.githubusercontent.com/corgan2222/""$SCRIPT_NAME""/""$SCRIPT_BRANCH"
 readonly DHCP_HOSTNAMESMAC="/opt/tmp/dhcp_clients_mac.txt"
@@ -1571,6 +1571,25 @@ Check_Requirements(){
 			case "$confirm" in
 				y|Y)
 					system_install_opkg coreutils-base64
+					break
+				;;
+				*)
+					CHECKSFAILED="true"
+					break
+				;;
+			esac
+		done
+	fi
+
+	if [ ! -f "/opt/bin/bc" ]; then
+		Print_Output "true" "bc (mathlib) not detected!" "$CRIT"
+
+		while true; do
+			printf "\\n\\e[1mWould you like to install bc? (y/n)\\e[0m\\n"
+			read -r "confirm"
+			case "$confirm" in
+				y|Y)
+					system_install_opkg bc
 					break
 				;;
 				*)
