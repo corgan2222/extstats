@@ -55,6 +55,22 @@ Print_Output(){
 	fi
 }
 
+if [ "$1" = "ext" ]; then
+	EXTS_SPDSTATS_ENABLED=$(grep "EXTS_SPDSTATS_ENABLED" "$SCRIPT_CONF" | cut -f2 -d"=")
+	if [ "$EXTS_SPDSTATS_ENABLED" = "true" ]; then
+		name="$INFLUX_DB_METRIC_NAME"
+		CURDATE=`date +%s`
+		columns="host=${ROUTER_MODEL}"
+
+		dl=${2}
+		ul=${3}
+		ext_data="$name,${columns} Download=$dl,Upload=$ul ${CURDATE}000000000"
+		logger -t "$SCRIPT_NAME:$MOD_NAME" "$ext_data" 
+		$dir/export.sh "${ext_data}" "true"
+	fi
+	exit 0 ;
+fi
+
 
 if [ -f "$CSV_TEMP_FILE" ]; then
 	rm -f $CSV_TEMP_FILE

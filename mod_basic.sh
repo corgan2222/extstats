@@ -1,5 +1,5 @@
 #!/bin/sh
-
+echo "here"
 [ -z "$(nvram get odmpid)" ] && ROUTER_MODEL=$(nvram get productid) || ROUTER_MODEL=$(nvram get odmpid)
 dir=`dirname $0`
 readonly SCRIPT_NAME="extstats"
