@@ -23,10 +23,10 @@ Print_Output(){
 
 function lc() {
   if [ $# -eq 0 ]; then
-    python -c 'import sys; print sys.stdin.read().decode("utf-8").lower()'
+    python -c 'import sys; print(sys.stdin.read().lower())'
   else
     for i in "$@"; do
-      echo $i | python -c 'import sys; print sys.stdin.read().decode("utf-8").lower()'
+      echo $i | python -c 'import sys; print(sys.stdin.read().lower())'
     done
   fi
 }
