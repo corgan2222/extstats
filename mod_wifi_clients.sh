@@ -5,6 +5,7 @@ dir=`dirname $0`
 readonly SCRIPT_NAME="extStats_mod_wifi_clients"
 readonly SCRIPT_debug=$1
 readonly DHCP_HOSTNAMESMAC="/opt/tmp/dhcp_clients_mac.txt"
+readonly CLIENTLIST="/opt/tmp/client-list.txt"
 readonly DATA_TEMP_FILE="/opt/tmp/$SCRIPT_NAME.influx"
 
 #generate new clientlist
@@ -62,19 +63,21 @@ mod_wifi_clients()
         for client in $clients; do
             client_lc=$(lc "$client")
             ip=$(grep $client_lc /proc/net/arp | awk '{print $1}')
+
+            if [ "$ip" = "" ]; then
+              ip=$client
+            fi
             #host=$(grep -i $client_lc /mnt/routerUSB/scripts/clients.txt | awk '{print $1}')
-            host=$(grep -i $client_lc $DHCP_HOSTNAMESMAC | awk '{print $1}')
+            STATION_NAME=$(grep -i $client_lc $DHCP_HOSTNAMESMAC | awk '{print $1}')                       
 
-            if [ -z "$ip" ]; then
-                ip=$clients
+            if [ "$STATION_NAME" = "" ]; then
+                STATION_NAME=$(grep -i $client_lc $CLIENTLIST | head -1 | awk '{print $1}')                
+                if [ "$STATION_NAME" = "" ]; then
+                  STATION_NAME=$client
+                fi
             fi
 
-            if [ -z "$host" ]; then
-                host=$clients
-            fi
-
-            printf "$wlan \t "$client_lc" \t "$ip" \t "$host" \\n"
-
+            #printf "$wlan \t "$client_lc" \t "$ip" \t "$STATION_NAME" \\n"
             #debug all wifi infos
             #wl -i $wlan sta_info $client 
 
@@ -108,8 +111,10 @@ mod_wifi_clients()
             prefix="eth"
             chann=$(echo "$wlan" | sed -e "s/^$prefix//")
 
-            columns="host=${ROUTER_MODEL},wifi=$wlan,client=$client,ip=$ip,hostname=$host,wifiBand=$chann"
+            columns="host=${ROUTER_MODEL},wifi=$wlan,client=$client,ip=$ip,hostname=$STATION_NAME,wifiBand=$chann"
             points="tx2_rate_pkt=$tx2_rate_pkt,tx1_rate_pkt=$tx1_rate_pkt,rx_rate_pkt=$rx_rate_pkt,rssi=$rssi,online=$online,rx_rate_pkt=$rx_rate_pkt,rsi_antenna1=$rsi_antenna1,rsi_antenna2=$rsi_antenna2,rsi_antenna3=$rsi_antenna3,rsi_antenna4=$rsi_antenna4,rsi_antenna_avg_1=$rsi_antenna_avg_1,rsi_antenna_avg_2=$rsi_antenna_avg_2,rsi_antenna_avg_3=$rsi_antenna_avg_3,rsi_antenna_avg_4=$rsi_antenna_avg_4,noise_antenna_1=$noise_antenna_1,noise_antenna_2=$noise_antenna_2,noise_antenna_3=$noise_antenna_3,noise_antenna_4=$noise_antenna_4,wifiBand=$chann,link_bandwidth=$link_bandwidth,tx_failures=$tx_failures,rx_decrypt_failures=$rx_decrypt_failures"
+            
+            #echo $columns
             #echo $points
 
             CURDATE=`date +%s`
@@ -117,9 +122,10 @@ mod_wifi_clients()
             data="$name,$columns $points ${CURDATE}000000000"
 
             echo $data >> $DATA_TEMP_FILE
-            #echo $data
+            echo $data
+            
             #curl -is -XPOST "https://${DBURL}/write?db=${DBNAME}&u=${USER}&p=${PASS}" --data-binary "$data"  > /dev/null
-            Print_Output "$SCRIPT_debug" "$data" "$WARN"
+                #Print_Output "$SCRIPT_debug" "$data" "$WARN"
             #$dir/export.sh "$data" "$SCRIPT_debug"
         done;
   done;

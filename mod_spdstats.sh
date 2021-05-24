@@ -31,8 +31,8 @@
 	readonly INFLUX_DB_METRIC_NAME="router.spdstats"
 
  if [ -z "${SCRIPT_MODE}" ]; then
-      echo "Usage: ./$MOD_NAME.sh [update | full] [debug true/false] [send debug to syslog true/false] "
-      echo "like Usage: ./$MOD_NAME.sh update true false"
+      echo "Usage: ./$MOD_NAME.sh [update | full] [debug true/false] [send debug to syslog true/false] [true|false SCRIPT_DEBUG_FULL ] "
+      echo "like Usage: ./$MOD_NAME.sh update true false false"
       echo "update gets the data from the last hour"
       echo "full imports all data"
       return 1
@@ -124,7 +124,7 @@ sqlite3 $DBFILE_COPY <<!
 .headers on
 .mode csv
 .output $CSV_TEMP_FILE
-select StatID,strftime('%Y-%m-%d %H:%M:%S', datetime(Timestamp, 'unixepoch')) as Timestamp,Download,Upload from $TABLE;
+select StatID,strftime('%Y-%m-%d %H:%M:%S', datetime(Timestamp, 'unixepoch')) as Timestamp,Download,Upload,Latency,Jitter,IFNULL(PktLoss,0)  from $TABLE;
 !
 
 fi
@@ -135,7 +135,7 @@ sqlite3 $DBFILE_COPY <<!
 .headers on
 .mode csv
 .output $CSV_TEMP_FILE
-select  StatID,strftime('%Y-%m-%d %H:%M:%S', datetime(Timestamp, 'unixepoch')) as Timestamp,Download,Upload from $TABLE WHERE Timestamp >= $STARTDATE ;
+select  StatID,strftime('%Y-%m-%d %H:%M:%S', datetime(Timestamp, 'unixepoch')) as Timestamp,Download,Upload,Latency,Jitter,IFNULL(PktLoss,0) from $TABLE WHERE Timestamp >= $STARTDATE ;
 !
 fi
 
@@ -167,6 +167,8 @@ if [ "$EXTS_NOVERIFIY" = "true" ]; then
 	SSL_VERIFY="--verify_ssl"
 fi
 
+#--tagcolumns "host=${ROUTER_MODEL},table=${TABLE}" \ //ToDo 
+
 if [ -f "$CSV_TEMP_FILE" ]; then
 	python $dir/export_py.py \
 		--input $CSV_TEMP_FILE \
@@ -178,7 +180,7 @@ if [ -f "$CSV_TEMP_FILE" ]; then
 		$DB_MODE \
 		$SSL_MODE \
 		$SSL_VERIFY \
-		--fieldcolumns StatID,Timestamp,Download,Upload \
+		--fieldcolumns StatID,Timestamp,Download,Upload,Latency,Jitter,PktLoss \
 		--metricname $INFLUX_DB_METRIC_NAME \
 		--batchsize 6000 \
 		-tc Timestamp \

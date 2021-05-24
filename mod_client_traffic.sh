@@ -18,6 +18,7 @@ readonly SCRIPT_debug=$2
 readonly DHCP_HOSTNAMESMAC="/opt/tmp/dhcp_clients_mac.txt"
 readonly MOD_NAME="mod_client_traffic"
 readonly DATA_TEMP_FILE="/tmp/$MOD_NAME.influx"
+readonly CLIENTLIST="/opt/tmp/client-list.txt"
 #generate new clientlist
 $SCRIPT_DIR/helper_dhcpstaticlist.sh >/dev/null 2>&1
 
@@ -148,6 +149,7 @@ case ${1} in
 
 				ip=$(grep $client_lc /proc/net/arp | awk '{print $1}' | head -1)
 				host=$(grep -i $client_lc $DHCP_HOSTNAMESMAC | awk '{print $1}' | head -1)
+			
 
 				#$ipp=$(echo $ip | awk '{print $1}')
 				#echo $ipp
@@ -156,6 +158,10 @@ case ${1} in
 					ip=$MAC
 				fi
 				# echo $ip
+
+				if [ "$host" = "" ]; then
+					host=$(grep -i $client_lc $CLIENTLIST | head -1 | awk '{print $1}')                
+				fi	
 
 				if [ -z "$host" ]; then
 					host=$MAC
@@ -202,6 +208,10 @@ case ${1} in
 			if [ -z "$ip" ]; then
 				ip=$MAC
 			fi
+
+			if [ "$host" = "" ]; then
+				host=$(grep -i $client_lc $CLIENTLIST | head -1 | awk '{print $1}')                
+			fi	
 
 			if [ -z "$host" ]; then
 				host=$MAC

@@ -15,6 +15,7 @@ readonly SCRIPT_NAME="extstats"
 readonly MOD_NAME="mod_trafficAnalyzer"
 readonly SCRIPT_DIR="/jffs/addons/$SCRIPT_NAME.d"
 readonly SCRIPT_CONF="$SCRIPT_DIR/config.conf"
+readonly CLIENTLIST="/opt/tmp/client-list.txt"
 
 #InfluxDB Settings
 readonly EXTS_URL=$(grep "EXTS_URL" "$SCRIPT_CONF" | cut -f2 -d"=")
@@ -29,6 +30,7 @@ readonly INFLUX_DB_METRIC_NAME="router.trafficAnalyzer"
 #Script Settings
 readonly TEMP_FOLDER="/tmp"
 readonly DHCP_HOSTNAMESMAC_CSV="/opt/tmp/dhcp_clients_mac.csv"
+readonly CLIENTLIST_CSV="/opt/tmp/client-list.csv"
 readonly DBFILE_ORG="/jffs/.sys/TrafficAnalyzer/TrafficAnalyzer.db"
 readonly DBFILE_COPY="$TEMP_FOLDER/$MOD_NAME.db"
 readonly CSV_TEMP_FILE="$TEMP_FOLDER/$MOD_NAME.csv"
@@ -40,6 +42,17 @@ readonly SCRIPT_DEBUG_FULL="${4}" #(true/false)
 
 #generate new clientlist
 $SCRIPT_DIR/helper_dhcpstaticlist.sh >/dev/null 2>&1
+
+#check if dhcp_clientlist or nvram client list has more than one line
+dhcp_client_lc=$(cat $DHCP_HOSTNAMESMAC_CSV | wc -l)
+nvram_client_lc=$(cat $CLIENTLIST_CSV | wc -l)
+
+if [ $dhcp_client_lc -lt 3 ]; then
+	HOSTNAMESMAC_CSV="/opt/tmp/client-list.csv"
+else
+	HOSTNAMESMAC_CSV="/opt/tmp/dhcp_clients_mac.csv"
+fi
+
 
 #########################################################################################################
 
@@ -111,8 +124,7 @@ if [ ! -r "$DBFILE_COPY" ]; then
 	exit 1
 fi
 
-#get the traffic data
-#sqlite3  /opt/tmp/mod_trafficAnalyzer.db "select * from clients;"
+
 sqlite3 $DBFILE_COPY <<!
 CREATE TABLE clients(
   hostname TEXT NOT NULL,
@@ -123,16 +135,20 @@ CREATE TABLE clients(
 #inject the hostnames to the mac adresses
 sqlite3 $DBFILE_COPY <<!
 .mode csv
-.import $DHCP_HOSTNAMESMAC_CSV clients
+.import $HOSTNAMESMAC_CSV clients
 !
 
 if [ "$SCRIPT_DEBUG_FULL" = "true" ]; then
-Print_Output "Clientlist from $DHCP_HOSTNAMESMAC_CSV imported into $DBFILE_COPY:"
+Print_Output "Clientlist from $HOSTNAMESMAC_CSV imported into $DBFILE_COPY:"
 #debug
 sqlite3 $DBFILE_COPY <<!
 SELECT * from clients;
 !
 fi
+
+#get the traffic data
+sqlite3  $DBFILE_COPY "select * from clients;"
+
 #sql statement for manual use 
 #select mac,app_name,cat_name, strftime('%Y-%m-%d %H:%M:%S', datetime(timestamp, 'unixepoch')) as timestamp,tx,rx from  $TABLE   ;
 #sqlite3  /opt/tmp/mod_trafficAnalyzer.db "select clients.hostname, traffic.mac,app_name,cat_name, strftime('%Y-%m-%d %H:%M:%S', datetime(timestamp, 'unixepoch')) as timestamp,tx,rx from traffic left join clients on traffic.mac = clients.mac;"
@@ -180,7 +196,7 @@ if [ "$EXTS_USESSH" = "true" ]; then
 fi
 
 if [ "$EXTS_NOVERIFIY" = "true" ]; then
-	SSL_VERIFY="--verify_ssl"
+	 SSL_VERIFY="--noverify"
 fi
 
 if [ ! -r "$CSV_TEMP_FILE" ]; then
@@ -190,6 +206,7 @@ else
 	lines=$(cat $CSV_TEMP_FILE | wc -l)
 	Print_Output "Export Traffic Analyser into InfluxDB. $lines entrys" true true
 fi
+
 
 #call the python script to do the work
 if [ -f "$CSV_TEMP_FILE" ]; then
@@ -217,8 +234,9 @@ fi
 #cleanup
 # Free some memory
 unlock
-rm -f $CSV_TEMP_FILE
-rm -f $DBFILE_COPY
+
+#rm -f $CSV_TEMP_FILE
+#rm -f $DBFILE_COPY
 
 
 #cru a trafA "15 * * * * /mnt/routerUSB/scripts/scripts/asuswrt/metrics2influx/router_TrafficAnalyzer_influx.sh update "

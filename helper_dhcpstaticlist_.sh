@@ -16,12 +16,13 @@ readonly DHCP_HOSTNAMESMAC_CSV="/opt/tmp/dhcp_clients_mac.csv"
 readonly DHCP_HOSTNAMESMAC_SB_IP="/opt/tmp/dhcp_clients_mac_sb_ip.txt"
 readonly DHCP_HOSTNAMESMAC_SB_MAC="/opt/tmp/dhcp_clients_mac_sb_mac.txt"
 readonly DHCP_HOSTNAMESMAC_SB_HOST="/opt/tmp/dhcp_clients_mac_sb_host.txt"
-readonly CLIENTLIST="/opt/tmp/client-list.txt"
-readonly CLIENTLIST_CSV="/opt/tmp/client-list.csv"
 
 Parse_Hostnames() {
 
-  true >/tmp/hostnames.$$
+  HOSTNAME_LIST=$(awk '{print $0}' /opt/tmp/dhcp_hostnames.txt)  
+  HOSTNAME_LIST=$(nvram get custom_clientlist)  
+
+  true >/opt/tmp/hostnames.$$
   OLDIFS=$IFS
   IFS="<"
 
@@ -29,52 +30,19 @@ Parse_Hostnames() {
     if [ "$ENTRY" = "" ]; then
       continue
     fi
+
     MACID=$(echo "$ENTRY" | cut -d ">" -f 1)
     HOSTNAME=$(echo "$ENTRY" | cut -d ">" -f 2)
-    echo "$MACID $HOSTNAME" >>/tmp/hostnames.$$
-  done
 
-  IFS=$OLDIFS
-
-}
-
-
-get_clientlist() {
-
-  rm -f $CLIENTLIST  
-  rm -f $CLIENTLIST_CSV  
-  
-  #CSV
-  #header needed
-  echo "hostname,mac" > $CLIENTLIST_CSV
-
-  LIST=$(nvram get custom_clientlist)  
-
-  OLDIFS=$IFS
-  IFS="<"
-
-  for CLIENT_ENTRY in $LIST; do
-    if [ "$CLIENT_ENTRY" = "" ]; then
-      continue
-    fi
-
-    CLIENT_MACID=$(echo "$CLIENT_ENTRY" | cut -d ">" -f 1)
-    CLIENT_HOSTNAME=$(echo "$CLIENT_ENTRY" | cut -d ">" -f 2)
-
-    if [ "$CLIENT_HOSTNAME" != "" ]; then
-      echo "$CLIENT_MACID $CLIENT_HOSTNAME" 
-      echo "$CLIENT_MACID $CLIENT_HOSTNAME" >>$CLIENTLIST     
-
-      #csv
-      echo "$CLIENT_HOSTNAME,$CLIENT_MACID" >>$CLIENTLIST_CSV   
+    if [ "$HOSTNAME" != "" ]; then
+      #echo "$MACID $HOSTNAME" >>/tmp/hostnames.$$
+      echo "$MACID $HOSTNAME" 
     fi
 
   done
-  
+
   IFS=$OLDIFS
-
 }
-
 
 Save_Dnsmasq_Format() {
 
@@ -134,9 +102,9 @@ Save_Dnsmasq_Format() {
   sort -k 3,3 -s $DHCP_HOSTNAMESMAC > $DHCP_HOSTNAMESMAC_SB_IP
 
 }
+Parse_Hostnames
+#Save_Dnsmasq_Format
 
-Save_Dnsmasq_Format
-get_clientlist
 
 # nvram get custom_clientlist
 # cat /var/lib/misc/dnsmasq.leases
