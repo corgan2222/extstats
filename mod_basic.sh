@@ -88,7 +88,8 @@ mod_temp(){
 
     p1=`wl -i eth6 phy_tempsense | awk '{ print $1 * .5 + 20 }'` # 2.4GHz
     p2=`wl -i eth7 phy_tempsense | awk '{ print $1 * .5 + 20 }'` # 5.0GHz
-    mod_temp_data="$name,${columns} temp_24=$p1,temp_50=$p2 ${CURDATE}000000000"
+    cpu=$(cat /sys/class/thermal/thermal_zone0/temp | awk '{print $1 / 1000}') # cpu thanks helkaluin 
+    mod_temp_data="$name,${columns} temp_24=$p1,temp_50=$p2,temp_cpu=$cpu ${CURDATE}000000000"
     Print_Output "$SCRIPT_debug" "$mod_temp_data" "$WARN"
     $dir/export.sh "$mod_temp_data" "$SCRIPT_debug"
 }
