@@ -22,17 +22,6 @@ Print_Output(){
 	fi
 }
 
-function lc() {
-  if [ $# -eq 0 ]; then
-    python -c 'import sys; print(sys.stdin.read().lower())'
-  else
-    for i in "$@"; do
-      echo $i | python -c 'import sys; print(sys.stdin.read().lower())'
-    done
-  fi
-}
-
-
 lock()
 {
 	while [ -f /tmp/$SCRIPT_NAME.lock ]; do
@@ -61,7 +50,7 @@ mod_wifi_clients()
     #printf "$wlan \n"
 
         for client in $clients; do
-            client_lc=$(lc "$client")
+            client_lc=$(echo '$client' | awk '{print tolower($0)}')
             ip=$(grep $client_lc /proc/net/arp | awk '{print $1}')
 
             if [ "$ip" = "" ]; then
