@@ -22,17 +22,6 @@ readonly CLIENTLIST="/opt/tmp/client-list.txt"
 #generate new clientlist
 $SCRIPT_DIR/helper_dhcpstaticlist.sh >/dev/null 2>&1
 
-
-function lc() {
-  if [ $# -eq 0 ]; then
-    python -c 'import sys; print(sys.stdin.read().lower())'
-  else
-    for i in "$@"; do
-      echo $i | python -c 'import sys; print(sys.stdin.read().lower())'
-    done
-  fi
-}
-
 # $1 = print to syslog, $2 = message to print, $3 = log level
 Print_Output(){
 	if [ "$SCRIPT_debug" = "true" ]; then
@@ -145,7 +134,7 @@ case ${1} in
 					OUT=${BYTES}
 				fi
 
-				client_lc=$(lc "$MAC")
+				client_lc=$(echo '$MAC' | awk '{print tolower($0)}')
 
 				ip=$(grep $client_lc /proc/net/arp | awk '{print $1}' | head -1)
 				host=$(grep -i $client_lc $DHCP_HOSTNAMESMAC | awk '{print $1}' | head -1)
@@ -201,7 +190,7 @@ case ${1} in
 				OUT=${BYTES}
 			fi
 
-			client_lc=$(lc "$MAC")
+			client_lc=$(echo '$MAC' | awk '{print tolower($0)}')
 			ip=$(grep $client_lc /proc/net/arp | awk '{print $1}' | head -1)
 			host=$(grep -i $client_lc $DHCP_HOSTNAMESMAC | awk '{print $1}' | head -1)
 
