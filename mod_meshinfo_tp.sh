@@ -2,33 +2,28 @@
 
 #https://github.com/megalloid/bcmdhdscripts
 
-#exit 
-
-#needs 
-# bash 
-# install coreutils-timeout
-
 [ -z "$(nvram get odmpid)" ] && ROUTER_MODEL=$(nvram get productid) || ROUTER_MODEL=$(nvram get odmpid)
 dir=`dirname $0`
 
 
-readonly SCRIPT_NAME="extStats_mod_meshinfo"
+readonly SCRIPT_NAME="extStats_mod_meshinfo_tp"
 readonly SCRIPT_debug=$1
 readonly DATA_TEMP_FILE="/opt/tmp/$SCRIPT_NAME.stations.influx"
 readonly DATA_FILE="/opt/tmp/$SCRIPT_NAME.influx"
 readonly SCRIPT_DIR="/jffs/addons/extstats.d"
 readonly SCRIPT_CONF="$SCRIPT_DIR/config.conf"
-readonly EXTS_SSH_USER=$(grep "EXTS_SSH_USER" "$SCRIPT_CONF" | cut -f2 -d"=")
-readonly EXTS_SSH_PW=$(grep "EXTS_SSH_PW" "$SCRIPT_CONF" | cut -f2 -d"=")
-
-readonly CMD_PASSH="$SCRIPT_DIR/passh -p $EXTS_SSH_PW"
-
+#readonly CMD_PASSH="$SCRIPT_DIR/passh"
 readonly TEMP_FOLDER="/tmp"
 readonly DHCP_EXTERNAL="/opt/tmp/dhcp_external.csv"
 readonly KNOWN_HOST_FILE="/root/.ssh/known_hosts"
 
-#$SCRIPT_DIR/helper_dhcpstaticlist.sh >/dev/null 2>&1
+readonly EXTS_SSH_USER="admin"
+readonly EXTS_SSH_PW="corgan80982"
+readonly EXTS_TP_IP="192.168.2.248"
 
+
+readonly CMD_PASSH="$SCRIPT_DIR/passh -t 5 -T -p $EXTS_SSH_PW"
+    
 Print_Output(){
   # $1 = print to syslog, $2 = message to print, $3 = log level
 	if [ "$SCRIPT_debug" = "true" ]; then
@@ -57,15 +52,6 @@ unlock()
     rm -f $DATA_TEMP_FILE
 }
 
-
-# function check_ping()
-# {
-#     MESH_IP=$(echo "$1")
-#     if ($( ping $MESH_IP -c1 > /dev/null )) ; then
-#         return 0
-#     fi
-# }
-
 check_known_hosts_for_ip()
 {
     MESH_IP=$(echo "$1")
@@ -75,7 +61,7 @@ check_known_hosts_for_ip()
     if [ $isInFile -eq 0 ]; 
     then
         echo "$MESH_IP not found in $KNOWN_HOST_FILE, try to login"
-        say_hello=$($SCRIPT_DIR/passh -P 'Do you want to continue connecting?' -p y $SCRIPT_DIR/passh -t 5 -T -i -p $EXTS_SSH_PW ssh $EXTS_SSH_USER@$mesh_node_ip uname -a)
+        say_hello=$($SCRIPT_DIR/passh -P 'Do you want to continue connecting?' -p y $SCRIPT_DIR/passh -t 5 -T -i -p $EXTS_SSH_PW ssh $EXTS_SSH_USER@$MESH_IP uname -a)
 
         echo "$say_hello"
         echo "quit for this round"
@@ -83,7 +69,7 @@ check_known_hosts_for_ip()
         return 1
     else
         echo "$MESH_IP found in $KNOWN_HOST_FILE, login testing"
-        login_str=$($SCRIPT_DIR/passh -t 5 -T -p $EXTS_SSH_PW ssh $EXTS_SSH_USER@$mesh_node_ip uname -a | tail +2)
+        login_str=$($SCRIPT_DIR/passh -t 5 -T -p $EXTS_SSH_PW ssh $EXTS_SSH_USER@$MESH_IP uname -a | tail +2)
 
         if [[ -n $login_str ]];
         then
@@ -94,41 +80,6 @@ check_known_hosts_for_ip()
             return 1
         fi        
     fi    
-}
-
-get_Mesh_Devices()
-{
-    #get asus mesh devices from nvram
-    devices=$(nvram get asus_device_list)
-
-    #Define multi-character delimiter
-    delimiter="<"
-
-    #Concatenate the delimiter with the main string
-    string=$devices$delimiter
-
-    #Split the text based on the delimiter
-    myarray=()
-    while [[ $string ]]; do
-    myarray+=( "${string%%"$delimiter"*}" )
-    string=${string#*"$delimiter"}
-    done
-
-    #Print the words after the split
-    for value in ${myarray[@]}
-    do
-        if [[ $i -gt 0 ]] #ignore router
-        then
-            #get ip            
-            ip=$(echo $value | egrep -E -o '(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)' | head -1)
-            mac=$(echo $value  | grep -o -E '([[:xdigit:]]{1,2}:){5}[[:xdigit:]]{1,2}')
-            
-            echo "$ip|$mac"
-                     
-        fi    
-        (( i = i + 1 ))
-    done
-
 }
 
 
@@ -149,6 +100,9 @@ function parse_stations() {
         return
     fi
     
+    # echo "$STATION_IP"
+    # echo "mac $STATION_MAC"        
+    # echo "name $STATION_NAME"
 
     AID=$(echo $station | cut -d' ' -f2)
     CHAN=$(echo $station | cut -d' ' -f3)
@@ -158,263 +112,65 @@ function parse_stations() {
     rx_rate_pkt=$(expr $rx_rate_pkt_raw \* 1000)
     RSSI_RAW=$(echo $station | cut -d' ' -f6 )
     RSSI=$(expr $RSSI_RAW - 96 )    
-    MINRSSI_raw=$(echo $station | cut -d' ' -f7 )
-    MINRSSI=$(expr $MINRSSI_raw - 96)
-    MAXRSSI_raw=$(echo $station | cut -d' ' -f8 )
-    MAXRSSI=$(expr $MAXRSSI_raw - 96 )
-    IDLE=$(echo $station | cut -d' ' -f9 )
-    CAPS=$(echo $station | cut -d' ' -f12 )
-    HTCAPS=$(echo $station | cut -d' ' -f16 )
-    ASSOCTIME=$(echo $station | cut -d' ' -f17 | awk -F: '{ print ($1 * 3600) + ($2 * 60) + $3 }' )
-    #IEs=$(echo $station | cut -d' ' -f18 )
-    #MODE=$(echo $station | cut -d' ' -f19 )
-    #RXNSS=$(echo $station | cut -d' ' -f21 )
-    #TXNSS=$(echo $station | cut -d' ' -f22 )
+    #RSSI=$RSSI_RAW
+    IDLE=$(echo $station | cut -d' ' -f7 )
+    TXSEQ=$(echo $station | cut -d' ' -f8 )
+    RXSEQ=$(echo $station | cut -d' ' -f9 )
+#    CAPS=$(echo $station | cut -d' ' -f10 )
+#    ACAPS=$(echo $station | cut -d' ' -f11 )
+#    ERP=$(echo $station | cut -d' ' -f12 )
+#    ERP=$(echo $station | cut -d' ' -f12 )
+
 
     columns="host=$node_name,client=$STATION_MAC,ip=$STATION_IP,hostname=$STATION_NAME,wifiBand=$band"
-    points="tx1_rate_pkt=$tx1_rate_pkt,rx_rate_pkt=$rx_rate_pkt,rssi=$RSSI,online=$ASSOCTIME,idle=$IDLE,min_rssi=$MINRSSI,max_rssi=$MAXRSSI,wifiBand=$band"
+    points="tx1_rate_pkt=$tx1_rate_pkt,rx_rate_pkt=$rx_rate_pkt,rssi=$RSSI,idle=$IDLE,TXSEQ=$TXSEQ,RXSEQ=$RXSEQ,wifiBand=$band"
 
     CURDATE=`date +%s`
     name="router.wifi.clients2"
     data="$name,$columns $points ${CURDATE}000000000"
 
     echo $data >> $DATA_TEMP_FILE
-    #echo $data    
+    echo $data    
 
 }
 
-function_parse_Mesh_devices() {
+function_parse_stations() {
     
-    mesh_node_ip=$(echo $1 | cut -d'|' -f1)
-    mesh_node_mac=$(echo $1 | cut -d'|' -f2)    
+    #get Station Infos
 
-    
-    if check_known_hosts_for_ip $mesh_node_ip;
+    if check_known_hosts_for_ip $EXTS_TP_IP;
     then
-        echo "Mesh Node $mesh_node_ip Successfully checked"
+        echo "TP Node $EXTS_TP_IP Successfully checked"
     else
-        echo "cant login to $mesh_node_ip, so quit here" 
+        echo "cant login to $EXTS_TP_IP, so quit here" 
         unlock
         exit 1
     fi
-
-    mesh_node_name=$(grep -i $mesh_node_mac "$DHCP_EXTERNAL" | cut -d ';' -f3 )
-
-    if [ "$mesh_node_name" = "" ]; then
-        mesh_node_name=$($CMD_PASSH ssh $EXTS_SSH_USER@$mesh_node_ip uname -a | tail +2 | awk '{print $2}')    
-    fi    
-
-    #get Station Infos
+   
 
     #get wlanconfig data from external node
-    wlc_string_ath0="$CMD_PASSH ssh $EXTS_SSH_USER@$mesh_node_ip wlanconfig ath0 list sta | tail +2"
-    wlc_string_ath2="$CMD_PASSH ssh $EXTS_SSH_USER@$mesh_node_ip wlanconfig ath2 list sta | tail +2"
+    wlc_string_ath0="$CMD_PASSH ssh $EXTS_SSH_USER@$EXTS_TP_IP wlanconfig ath0 list sta "
     
     #remove header
-    wlc_ath0=$($wlc_string_ath0 | tail +2)
-    wlc_ath2=$($wlc_string_ath2 | tail +2)  
- 
+    wlc_ath0=$($wlc_string_ath0 | tail +3)
+    #echo "$wlc_ath0"
 
     #loop through stations for ath0
     while read -r station
     do
         #echo "$station"     
-        parse_stations "$station" $mesh_node_ip  $mesh_node_mac 2 $mesh_node_name
+        parse_stations "$station" $EXTS_TP_IP  "" 2 "TP-Link-Pharos_oben"
     done <<<"$wlc_ath0"
 
-    #loop through stations for ath2
-    while read -r station2
-    do
-        #echo "$station"     
-        parse_stations "$station2" $mesh_node_ip  $mesh_node_mac 5 $mesh_node_name
-    done <<<"$wlc_ath2"
-
-    #Connections Infos
-    function_connections $mesh_node_ip $mesh_node_mac $mesh_node_name
-
-    #Uptime Infos
-    function_uptime $mesh_node_ip $mesh_node_mac $mesh_node_name
-
-    #CPU Infos
-    function_cpu $mesh_node_ip $mesh_node_mac $mesh_node_name
-
-    #net
-    function_net $mesh_node_ip $mesh_node_mac $mesh_node_name
-
- }
-
-function_connections()
-{
-    CURDATE=$(date +%s)
-    mesh_node_ip=$(echo "$1")
-    mesh_node_mac=$(echo "$2")
-    mesh_node_name=$(echo "$3")
-        
-    wifi_24=`wl -i eth6 assoclist | awk '{print $2}' | wc -l`
-    wifi_5=`wl -i eth7 assoclist | awk '{print $2}' | wc -l`
-
-    wlc_string_ath0="$CMD_PASSH ssh $EXTS_SSH_USER@$mesh_node_ip wlanconfig ath0 list sta"
-    wlc_string_ath2="$CMD_PASSH ssh $EXTS_SSH_USER@$mesh_node_ip wlanconfig ath2 list sta"
-    
-    wlc_ath0=$($wlc_string_ath0 | wc -l)
-    wlc_ath2=$($wlc_string_ath2 | tail +3 | wc -l)
-
-    name="router.connections"
-    columns="host=${mesh_node_name},type=connections"
-    mod_connections="$name,$columns wifi_24=$wlc_ath0,wifi_5=$wlc_ath2 ${CURDATE}000000000"
-    #echo "$mod_connections"
-    Print_Output "${SCRIPT_debug}_connections" "$mod_connections" "$WARN"
-    $dir/export.sh "$mod_connections" "$SCRIPT_debug"
-
-}
-
-function_uptime()
-{
-    CURDATE=$(date +%s)
-    mesh_node_ip=$(echo "$1")
-    mesh_node_mac=$(echo "$2")
-    mesh_node_name=$(echo "$3")
-
-    uptime_raw="$CMD_PASSH ssh $EXTS_SSH_USER@$mesh_node_ip cat /proc/uptime"
-    uptime_str=$($uptime_raw | tail +2)
-    uptime=$(echo $uptime_str | cut -d' ' -f1)
-
-    name="router.uptime"
-    columns="host=${mesh_node_name}"
-    mod_uptime="${name},${columns} uptime=${uptime} ${CURDATE}000000000"
-
-    Print_Output "${SCRIPT_debug}_uptime" "$mod_uptime" "$WARN"
-    $dir/export.sh "$mod_uptime" "$SCRIPT_debug"   
-
-    #echo "$mod_uptime"    
-}
-
-
-function_net(){
-    maxint=4294967295
-    
-    scriptname=`basename $0`
-
-    CURDATE=$(date +%s)
-    mesh_node_ip=$(echo "$1")
-    mesh_node_mac=$(echo "$2")
-    mesh_node_name=$(echo "$3")
-
-    old="/tmp/$scriptname.net.$mesh_node_name.data.old"
-    new="/tmp/$scriptname.net.$mesh_node_name.data.new"
-
-    old_epoch_file="/tmp/$scriptname.net.$mesh_node_name.epoch.old"
-    DATA_TEMP_FILE_MESH="/tmp/$scriptname.net.$mesh_node_name.influx"
-    rm -f $DATA_TEMP_FILE_MESH
-
-    old_epoch=`cat $old_epoch_file`
-    new_epoch=`date "+%s"`
-    echo $new_epoch > $old_epoch_file
-
-    interval=`expr $new_epoch - $old_epoch` # seconds since last sample
-
-    if [ -f $new ]; then
-        awk -v old=$old -v interval=$interval -v maxint=$maxint '{
-            getline line < old
-            split(line, a)
-            if( $1 == a[1] ){
-                recv_bytes  = $2 - a[2]
-                trans_bytes = $5 - a[5]
-                if(recv_bytes < 0) {recv_bytes = recv_bytes + maxint}    # maxint counter rollover
-                if(trans_bytes < 0) {trans_bytes = trans_bytes + maxint} # maxint counter rollover
-                recv_mbps  = (8 * (recv_bytes) / interval) / 1048576     # mbits per second
-                trans_mbps = (8 * (trans_bytes) / interval) / 1048576    # mbits per second
-                print $1, recv_mbps, $3 - a[3], $4 - a[4], trans_mbps, $6 - a[6], $7 - a[7]
-            }
-        }' $new  | while read line; do
-            #echo $line
-            interface=$(echo $line | cut -d' ' -f1)
-            recv_mbps=$(echo $line | cut -d' ' -f2)
-            recv_errs=$(echo $line | cut -d' ' -f3)
-            recv_drop=$(echo $line | cut -d' ' -f4)
-            trans_mbps=$(echo $line | cut -d' ' -f5)
-            trans_errs=$(echo $line | cut -d' ' -f6)
-            trans_drop=$(echo $line | cut -d' ' -f7)
-
-            name="router.network"
-            columns="host=${mesh_node_name},interface=${interface}"
-            points="recv_mbps=${recv_mbps},recv_errs=${recv_errs},recv_drop=${recv_drop},trans_mbps=${trans_mbps},trans_errs=${trans_errs},trans_drop=${trans_drop}"
-            mod_net_data="$name,${columns} ${points} ${CURDATE}000000000"
-            #echo $mod_net_data 
-            echo $mod_net_data >> $DATA_TEMP_FILE_MESH
-
-        done
-        mv $new $old
-    fi
-
-    net_dev_raw="$CMD_PASSH ssh $EXTS_SSH_USER@$mesh_node_ip cat /proc/net/dev | tail +3 | tr ':|' '  '  "
-    net_dev_str=$($net_dev_raw | awk '{print $1,$2,$4,$5,$10,$12,$13}' | tail +2)    
-    
-    echo "$net_dev_str" > $new
-    #echo "$net_dev_str"
-
-    $dir/export.sh "$DATA_TEMP_FILE_MESH" "$SCRIPT_debug" "file"
-}
-
-
-
-function_cpu(){
-    
-    mesh_node_ip=$(echo "$1")
-    mesh_node_mac=$(echo "$2")
-    mesh_node_name=$(echo "$3")
-
-    CURDATE=`date +%s`
-    name="router.cpu"
-    columns="usr sys nic idle io irq sirq"
-
-    top_cpu_cmd="$CMD_PASSH ssh $EXTS_SSH_USER@$mesh_node_ip top -bn1 | head -3 | awk '/CPU/' "
-    top_load_cmd="$CMD_PASSH ssh $EXTS_SSH_USER@$mesh_node_ip top -bn1 | head -3 | awk '/Load average:/' "
-    processes_cmd="$CMD_PASSH ssh $EXTS_SSH_USER@$mesh_node_ip ps | wc -l"
-
-    top_cpu_str=$($top_cpu_cmd | tail +2)
-    top_load_str=$($top_load_cmd | tail +2)
-    top_process_str=$($processes_cmd | tail +2 |tr -d '\r' |tr -d '\n')
-
-    points2=$(echo $top_cpu_str | awk '/CPU/ {print $2}' | sed 's/%//g' )
-    points4=$(echo $top_cpu_str | awk '/CPU/ {print $4}' | sed 's/%//g' )
-    points6=$(echo $top_cpu_str | awk '/CPU/ {print $6}' | sed 's/%//g' )
-    points8=$(echo $top_cpu_str | awk '/CPU/ {print $8}' | sed 's/%//g' )
-    points10=$(echo $top_cpu_str | awk '/CPU/ {print $10}' | sed 's/%//g' )
-    points12=$(echo $top_cpu_str | awk '/CPU/ {print $12}' | sed 's/%//g' )
-    points14=$(echo $top_cpu_str | awk '/CPU/ {print $14}' | sed 's/%//g' )
-
-    load1=$(echo $top_load_str | awk '/Load average:/ {print $3}' | sed 's/%//g')
-    load5=$(echo $top_load_str | awk '/Load average:/ {print $4}' | sed 's/%//g')
-    load15=$(echo $top_load_str| awk '/Load average:/ {print $5}' | sed 's/%//g')
-
-
-    columns="host=${mesh_node_name}"
-    points="usr=$points2,sys=$points4,nic=$points6,idle=$points8,io=$points10,irq=$points12,sirq=$points12,load1=$load1,load5=$load5,load15=$load15,processes=${top_process_str}"
-    mod_cpu_data="${name},${columns} ${points} ${CURDATE}000000000"
-
-    Print_Output "${SCRIPT_debug}_cpu" "$mod_cpu_data" "$WARN"
-    $dir/export.sh "$mod_cpu_data" "$SCRIPT_debug"
-}
-
-
-mod_mesh(){
-
-    #get list of Asus Mesh Devices
-    devices=$(get_Mesh_Devices)
-
-    for device in ${devices[@]}
-    do
-        function_parse_Mesh_devices $device
-    done
-
+    #echo ${DATA_TEMP_FILE}
     #export stations to influx
     $dir/export.sh "$DATA_TEMP_FILE" "$SCRIPT_debug" "file"
 
-}   
+ }
+
 
 lock
-mod_mesh
+function_parse_stations
 unlock
 
 
