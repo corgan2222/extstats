@@ -33,9 +33,11 @@ mod_cpu(){
     #http://www.linuxhowtos.org/System/procstat.htm
 
     CURDATE=`date +%s`
-
     name="router.cpu"
     columns="usr sys nic idle io irq sirq"
+
+    points_top=$(top -bn1 | head -3 )
+
     points2=`top -bn1 | head -3 | awk '/CPU/ {print $2}' | sed 's/%//g'`
     points4=`top -bn1 | head -3 | awk '/CPU/ {print $4}' | sed 's/%//g'`
     points6=`top -bn1 | head -3 | awk '/CPU/ {print $6}' | sed 's/%//g'`
@@ -136,6 +138,7 @@ mod_net(){
             columns="host=${ROUTER_MODEL},interface=${interface}"
             points="recv_mbps=${recv_mbps},recv_errs=${recv_errs},recv_drop=${recv_drop},trans_mbps=${trans_mbps},trans_errs=${trans_errs},trans_drop=${trans_drop}"
             mod_net_data="$name,${columns} ${points} ${CURDATE}000000000"
+            #echo $mod_net_data 
             echo $mod_net_data >> $DATA_TEMP_FILE
 
             #$dir/export.sh "$mod_net_data" "$SCRIPT_debug"
