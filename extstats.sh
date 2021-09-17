@@ -21,7 +21,7 @@ readonly SCRIPT_NAME="extstats"
 readonly SCRIPT_NAME_LOWER=$(echo $SCRIPT_NAME | tr 'A-Z' 'a-z' | sed 's/d//')
 readonly SCRIPT_DIR="/jffs/addons/$SCRIPT_NAME_LOWER.d"
 readonly SCRIPT_CONF="$SCRIPT_DIR/config.conf"
-readonly SCRIPT_VERSION="v0.4.0"
+readonly SCRIPT_VERSION="v0.2.0"
 readonly SCRIPT_BRANCH="master"
 readonly SCRIPT_REPO="https://raw.githubusercontent.com/corgan2222/""$SCRIPT_NAME""/""$SCRIPT_BRANCH"
 readonly DHCP_HOSTNAMESMAC="/opt/tmp/dhcp_clients_mac.txt"
@@ -43,15 +43,8 @@ readConfigData()
 		EXTS_USESSH=$(grep "EXTS_USESSH" "$SCRIPT_CONF" | cut -f2 -d"=")
 		EXTS_NOVERIFIY=$(grep "EXTS_NOVERIFIY" "$SCRIPT_CONF" | cut -f2 -d"=")
 		EXTS_PORT=$(grep "EXTS_PORT" "$SCRIPT_CONF" | cut -f2 -d"=")
-
-		#https for influx
 		if [ "$EXTS_USESSH" != "false" ]; then HTTP="https"; else HTTP="http"; fi
 		if [ "$EXTS_NOVERIFIY" == "true" ]; then VERIFIY="-k"; fi #ignore ssl error
-
-		#only for Mesh
-		EXTS_SSH_USER=$(grep "EXTS_SSH_USER" "$SCRIPT_CONF" | cut -f2 -d"=")
-		EXTS_SSH_PW=$(grep "EXTS_SSH_PW" "$SCRIPT_CONF" | cut -f2 -d"=")
-
 
 		CURL_OPTIONS="${VERIFIY} -POST" #get is deprecated
 		UN_COUNT=$(echo $EXTS_PASSWORD | wc -m)
@@ -166,7 +159,6 @@ Update_Version(){
 		Update_File "mod_trafficAnalyzer.sh"
 		Update_File "mod_vpn_client.sh"
 		Update_File "mod_wifi_clients.sh"
-		Update_File "mod_meshinfo.sh"
 
 		
 		if [ "$doupdate" != "false" ]; then
@@ -196,7 +188,6 @@ Update_Version(){
 			Update_File "mod_trafficAnalyzer.sh"
 			Update_File "mod_vpn_client.sh"
 			Update_File "mod_wifi_clients.sh"
-			Update_File "mod_meshinfo.sh"
 
 			/usr/sbin/curl -fsL --retry 3 "$SCRIPT_REPO/$SCRIPT_NAME.sh" -o "/jffs/scripts/$SCRIPT_NAME" && Print_Output "true" "$SCRIPT_NAME successfully updated"
 			chmod 0755 /jffs/scripts/"$SCRIPT_NAME"
@@ -432,23 +423,6 @@ exts_vpn(){
 		check)
 			EXTS_VPN_ENABLED=$(grep "EXTS_VPN_ENABLED" "$SCRIPT_CONF" | cut -f2 -d"=")
 			if [ "$EXTS_VPN_ENABLED" = "true" ]; then return 0; else return 1; fi
-		;;
-	esac
-}
-
-exts_meshinfo(){
-    case $1 in
-		enable)
-			sed -i 's/^EXTS_MESHINFO_ENABLED.*$/EXTS_MESHINFO_ENABLED=true/' "$SCRIPT_CONF"
-			Auto_Cron create "cron_mod_meshinfo" 2>/dev/null
-		;;
-		disable)
-			sed -i 's/^EXTS_MESHINFO_ENABLED.*$/EXTS_MESHINFO_ENABLED=false/' "$SCRIPT_CONF"
-			Auto_Cron delete "cron_mod_meshinfo" 2>/dev/null
-		;;
-		check)
-			EXTS_MESHINFO_ENABLED=$(grep "EXTS_MESHINFO_ENABLED" "$SCRIPT_CONF" | cut -f2 -d"=")
-			if [ "$EXTS_MESHINFO_ENABLED" = "true" ]; then return 0; else return 1; fi
 		;;
 	esac
 }
@@ -927,7 +901,6 @@ MainMenu(){
 	EXTS_NTPMERLIN_ENABLED=""
 	EXTS_SPDSTATS_ENABLED=""
 	EXTS_VPN_ENABLED=""
-	EXTS_MESHINFO_ENABLED=""
 
 	if exts_basic check; then EXTS_BASIC_ENABLED="[Enabled] "; else EXTS_BASIC_ENABLED="[Disabled]"; fi
 	if exts_wifi check; then EXTS_WIFI_ENABLED="[Enabled] "; else EXTS_WIFI_ENABLED="[Disabled]"; fi
@@ -936,7 +909,6 @@ MainMenu(){
 	if exts_ntpmerlin check; then EXTS_NTPMERLIN_ENABLED="[Enabled] "; else EXTS_NTPMERLIN_ENABLED="[Disabled]"; fi
 	if exts_spdstats check; then EXTS_SPDSTATS_ENABLED="[Enabled] "; else EXTS_SPDSTATS_ENABLED="[Disabled]"; fi
 	if exts_vpn check; then EXTS_VPN_ENABLED="[Enabled] "; else EXTS_VPN_ENABLED="[Disabled]"; fi
-	if exts_meshinfo check; then EXTS_MESHINFO_ENABLED="[Enabled] "; else EXTS_MESHINFO_ENABLED="[Disabled]"; fi
 
 #client traffic
 #1 * * * * /mnt/routerUSB/scripts/scripts/asuswrt/metrics2influx/router_client_traffic.sh setup  #TtInit#
@@ -960,7 +932,6 @@ if pingDB; then
 	printf "6.    %s Toogle Connmon Stats (Uptime Monitoring)\\n" "$EXTS_NTPMERLIN_ENABLED"
 	printf "7.    %s Toogle spdMerlin Stats (Speedtest)\\n" "$EXTS_SPDSTATS_ENABLED"
 	printf "8.    %s Toogle VPN stats\\n" "$EXTS_VPN_ENABLED"
-	printf "9.    %s Toogle MeshInfo (experimental)\\n" "$EXTS_MESHINFO_ENABLED"
 
 	printf "\\n\\e[1mTest\\e[0m\\n"	
 	printf "db.    Show Database entrys\\n"
@@ -971,9 +942,8 @@ if pingDB; then
 	printf "t5.    Test Traffic Analyzer \\n"
 	printf "t6.    Test Connmon Stats \\n"
 	printf "t7.    Test spdStats \\n"
-	printf "t8.    Test VPN stats \\n"
-	printf "t9.    Test MeshInfo (experimental) \\n\\n"
-	printf "t10.   Test all \\n"
+	printf "t8.    Test VPN stats \\n\\n"
+	printf "t9.    Test all \\n"
 else
 	printf "\\n\\e[1mCant ping Database! Please setup Database (1)\\e[0m\\n"	
 fi
@@ -1116,15 +1086,7 @@ fi
                 fi
 				break
 			;;
-			9)
-				printf "\\n"
-                if exts_meshinfo check; then
-                    exts_meshinfo disable
-                else
-                     exts_meshinfo enable
-                fi
-				break
-			;;
+
 			t1)
 				printf "\\n"
 				if Check_Lock "menu"; then
@@ -1211,17 +1173,6 @@ fi
 			t9)
 				printf "\\n"
 				if Check_Lock "menu"; then
-				 /opt/bin/bash $SCRIPT_DIR/mod_meshinfo.sh "true"
-				fi
-                Clear_Lock
-				PressEnter
-				break
-				printf "\\n"
-
-			;;
-			t10)
-				printf "\\n"
-				if Check_Lock "menu"; then
 					test_DB
 					PressEnter
 					$SCRIPT_DIR/mod_basic.sh "true"
@@ -1238,8 +1189,6 @@ fi
 					$SCRIPT_DIR/mod_spdstats.sh "update" "true"
 					PressEnter
 					$SCRIPT_DIR/mod_vpn_client.sh "true" 
-					PressEnter
-					/opt/bin/bash $SCRIPT_DIR/mod_meshinfo.sh "true" 
 					PressEnter
 				fi
                 Clear_Lock
@@ -1416,9 +1365,6 @@ AutomaticMode(){
 		cron_mod_vpn_client)
 			config_var="EXTS_VPN_ENABLED"
 		;;
-		cron_mod_meshinfo)
-			config_var="EXTS_MESHINFO_ENABLED"
-		;;
 	esac
 
 
@@ -1455,7 +1401,6 @@ Menu_Startup(){
 	if AutomaticMode check "cron_mod_constats"; then Auto_Cron create "cron_mod_constats" 2>/dev/null; else Auto_Cron delete "cron_mod_constats" 2>/dev/null; fi
 	if AutomaticMode check "cron_mod_spdstats"; then Auto_Cron create "cron_mod_spdstats" 2>/dev/null; else Auto_Cron delete "cron_mod_spdstats" 2>/dev/null; fi
 	if AutomaticMode check "cron_mod_vpn_client"; then Auto_Cron create "cron_mod_vpn_client" 2>/dev/null; else Auto_Cron delete "cron_mod_vpn_client" 2>/dev/null; fi
-	if AutomaticMode check "cron_mod_meshinfo"; then Auto_Cron create "cron_mod_meshinfo" 2>/dev/null; else Auto_Cron delete "cron_mod_meshinfo" 2>/dev/null; fi
 	
 	Auto_Cron create "helper_dhcpstaticlist" 2>/dev/null
 
@@ -1503,7 +1448,6 @@ Auto_Cron(){
 
 	MOD_CRON_ACTION=${1}
 	MOD_CRON_JOB=${2}
-	BASHPROMPT=""
 
 	case $MOD_CRON_JOB in
 		cron_mod_basic)
@@ -1530,10 +1474,6 @@ Auto_Cron(){
 		cron_mod_vpn_client)
 			CRONTIME="* * * * *" #At every minute
 		;;
-		cron_mod_meshinfo)
-			CRONTIME="*/1 * * * *" #At every minute
-			BASHPROMPT="/opt/bin/bash"
-		;;
 		helper_dhcpstaticlist)
 			CRONTIME="*/5 * * * *" #every 5 minutes
 		;;
@@ -1545,7 +1485,7 @@ Auto_Cron(){
 
 		if [ "$STARTUPLINECOUNT" -eq 0 ]; 
 		then
-			cru a "$MOD_CRON_JOB" "$CRONTIME $BASHPROMPT /jffs/scripts/$SCRIPT_NAME $MOD_CRON_JOB"
+			cru a "$MOD_CRON_JOB" "$CRONTIME /jffs/scripts/$SCRIPT_NAME $MOD_CRON_JOB"
 		fi
 		;;
 		delete)
@@ -1757,7 +1697,6 @@ Menu_Install(){
 	Update_File "mod_vpn_client.sh"
 	Update_File "mod_wifi_clients.sh"
 	Update_File "mod_versions.sh"
-	Update_File "mod_meshinfo.sh"
 
 	Conf_Exists
 	
@@ -1793,7 +1732,6 @@ rm_crons(){
 	cru d cron_mod_spdstats 2>/dev/null
 	cru d cron_mod_vpn_client 2>/dev/null
 	cru d cron_mod_constats 2>/dev/null
-	cru d cron_mod_meshinfo 2>/dev/null
 	cru d helper_dhcpstaticlist 2>/dev/null
 
 }
@@ -1884,11 +1822,6 @@ case "$1" in
 	;;
 	cron_mod_vpn_client)
 		nice -n -19 $SCRIPT_DIR/mod_vpn_client.sh "false"
-		exit 0
-	;;
-	cron_mod_meshinfo)
-		nice -n -19 /opt/bin/bash $SCRIPT_DIR/mod_meshinfo.sh "false"
-		nice -n -19 /opt/bin/bash $SCRIPT_DIR/mod_meshinfo_tp.sh "false"
 		exit 0
 	;;
 	helper_dhcpstaticlist)
