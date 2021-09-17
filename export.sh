@@ -63,7 +63,7 @@
 			;;
 			204) # extstats: HTTP/1.1 204 No Content
 				#Print_Output "true" "204 extStats:export True [${2}]" "$WARN"
-				break
+				#break
 			;;
 			400) # HTTP/1.1 400 Bad Request
 				Print_Output "true" "extStats:export Error ${response_header} - maybe there is something wrong with the query" "$WARN"
