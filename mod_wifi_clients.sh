@@ -126,7 +126,7 @@ mod_wifi_clients()
             #echo $points
 
             CURDATE=`date +%s`
-            name="router.wifi.clients"
+            name="router.wifi.clients2"
             data="$name,$columns $points ${CURDATE}000000000"
 
             echo $data >> $DATA_TEMP_FILE

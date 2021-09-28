@@ -29,6 +29,8 @@ readonly DHCP_HOSTNAMESMAC_CSV="/opt/tmp/dhcp_clients_mac.csv"
 readonly DHCP_HOSTNAMESMAC_SB_IP="/opt/tmp/dhcp_clients_mac_sb_ip.txt"
 readonly DHCP_HOSTNAMESMAC_SB_MAC="/opt/tmp/dhcp_clients_mac_sb_mac.txt"
 readonly DHCP_HOSTNAMESMAC_SB_HOST="/opt/tmp/dhcp_clients_mac_sb_host.txt"
+readonly DHCP_EXTERNAL="/opt/tmp/dhcp_external.csv"
+
 [ -z "$(nvram get odmpid)" ] && ROUTER_MODEL=$(nvram get productid) || ROUTER_MODEL=$(nvram get odmpid)
 [ -f /opt/bin/sqlite3 ] && SQLITE3_PATH=/opt/bin/sqlite3 || SQLITE3_PATH=/usr/sbin/sqlite3
 ### End of script variables ###
@@ -43,6 +45,7 @@ readConfigData()
 		EXTS_USESSH=$(grep "EXTS_USESSH" "$SCRIPT_CONF" | cut -f2 -d"=")
 		EXTS_NOVERIFIY=$(grep "EXTS_NOVERIFIY" "$SCRIPT_CONF" | cut -f2 -d"=")
 		EXTS_PORT=$(grep "EXTS_PORT" "$SCRIPT_CONF" | cut -f2 -d"=")
+		EXTS_MAC_LIST_URL=$(grep "EXTS_MAC_LIST_URL" "$SCRIPT_CONF" | cut -f2 -d"=")
 
 		#https for influx
 		if [ "$EXTS_USESSH" != "false" ]; then HTTP="https"; else HTTP="http"; fi
@@ -973,7 +976,10 @@ if pingDB; then
 	printf "t7.    Test spdStats \\n"
 	printf "t8.    Test VPN stats \\n"
 	printf "t9.    Test MeshInfo (experimental) \\n\\n"
-	printf "t10.   Test all \\n"
+	printf "t10.   Test all \\n"	
+	if [ ! -z "$EXTS_MAC_LIST_URL" ] ; then
+		printf "t11.   Get new external DHCP Mac list \\n"
+	fi		
 else
 	printf "\\n\\e[1mCant ping Database! Please setup Database (1)\\e[0m\\n"	
 fi
@@ -1243,6 +1249,17 @@ fi
 					PressEnter
 				fi
                 Clear_Lock
+				PressEnter
+				break
+			;;
+			t11)
+				printf "\\n"
+				printf "Mac Count before:"
+				cat "$DHCP_EXTERNAL" | wc -l
+				echo "save $EXTS_MAC_LIST_URL to $DHCP_EXTERNAL"
+				curl -sS "$EXTS_MAC_LIST_URL" 2>/dev/null -o "$DHCP_EXTERNAL"
+				printf "Mac Count after:"
+				cat "$DHCP_EXTERNAL" | wc -l             
 				PressEnter
 				break
 			;;

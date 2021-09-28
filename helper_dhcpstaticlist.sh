@@ -10,6 +10,10 @@
 
 # Uncomment for debugging
 #set -x
+readonly SCRIPT_NAME="extstats"
+readonly SCRIPT_NAME_LOWER=$(echo $SCRIPT_NAME | tr 'A-Z' 'a-z' | sed 's/d//')
+readonly SCRIPT_DIR="/jffs/addons/$SCRIPT_NAME_LOWER.d"
+readonly SCRIPT_CONF="$SCRIPT_DIR/config.conf"
 
 readonly DHCP_HOSTNAMESMAC="/opt/tmp/dhcp_clients_mac.txt"
 readonly DHCP_HOSTNAMESMAC_CSV="/opt/tmp/dhcp_clients_mac.csv"
@@ -18,6 +22,8 @@ readonly DHCP_HOSTNAMESMAC_SB_MAC="/opt/tmp/dhcp_clients_mac_sb_mac.txt"
 readonly DHCP_HOSTNAMESMAC_SB_HOST="/opt/tmp/dhcp_clients_mac_sb_host.txt"
 readonly CLIENTLIST="/opt/tmp/client-list.txt"
 readonly CLIENTLIST_CSV="/opt/tmp/client-list.csv"
+readonly DHCP_EXTERNAL="/opt/tmp/dhcp_external.csv"
+readonly EXTS_MAC_LIST_URL=$(grep "EXTS_MAC_LIST_URL" "$SCRIPT_CONF" | cut -f2 -d"=")
 
 Parse_Hostnames() {
 
@@ -135,8 +141,17 @@ Save_Dnsmasq_Format() {
 
 }
 
+get_external_list() 
+{
+  curl -sS "$EXTS_MAC_LIST_URL" 2>/dev/null -o "$DHCP_EXTERNAL"
+}
+
 Save_Dnsmasq_Format
 get_clientlist
+
+if [ ! -z "$EXTS_MAC_LIST_URL" ] ; then
+  get_external_list
+fi  
 
 # nvram get custom_clientlist
 # cat /var/lib/misc/dnsmasq.leases
