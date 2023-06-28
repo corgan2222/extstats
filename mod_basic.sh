@@ -53,7 +53,7 @@ mod_cpu(){
     processes=$(ps | wc -l)
 
     columns="host=${ROUTER_MODEL}"
-    points="usr=$points2,sys=$points4,nic=$points6,idle=$points8,io=$points10,irq=$points12,sirq=$points12,load1=$load1,load5=$load5,load15=$load15,processes=$processes"
+    points="usr=$points2,sys=$points4,nic=$points6,idle=$points8,io=$points10,irq=$points12,sirq=$points14,load1=$load1,load5=$load5,load15=$load15,processes=$processes"
     mod_cpu_data="$name,$columns $points ${CURDATE}000000000"
 
     Print_Output "$SCRIPT_debug" "$mod_cpu_data" "$WARN"
